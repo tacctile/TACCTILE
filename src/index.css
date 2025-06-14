@@ -87,6 +87,94 @@
   background: rgba(29, 185, 84, 0.05);
 }
 
+/* Enhanced range slider styling */
+.slider {
+  background: #282828;
+  outline: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #1DB954;
+  cursor: pointer;
+  box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.2);
+  transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.3);
+  transform: scale(1.1);
+}
+
+.slider::-webkit-slider-thumb:active {
+  box-shadow: 0 0 0 6px rgba(29, 185, 84, 0.4);
+  transform: scale(1.2);
+}
+
+.slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #1DB954;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.2);
+  transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.3);
+  transform: scale(1.1);
+}
+
+.slider::-moz-range-thumb:active {
+  box-shadow: 0 0 0 6px rgba(29, 185, 84, 0.4);
+  transform: scale(1.2);
+}
+
+/* Track styling for better visual feedback */
+.slider::-webkit-slider-track {
+  height: 4px;
+  background: linear-gradient(to right, #1DB954 0%, #1DB954 var(--value, 50%), #404040 var(--value, 50%), #404040 100%);
+  border-radius: 2px;
+}
+
+.slider::-moz-range-track {
+  height: 4px;
+  background: #404040;
+  border-radius: 2px;
+}
+
+.slider::-moz-range-progress {
+  height: 4px;
+  background: #1DB954;
+  border-radius: 2px;
+}
+
+/* Custom scrollbar for settings panel */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: rgba(40, 40, 40, 0.3);
+  border-radius: 2px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(29, 185, 84, 0.5);
+  border-radius: 2px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(29, 185, 84, 0.7);
+}
+
 /* Mobile responsiveness for Android-style drag */
 @media (max-width: 768px) {
   .dragging {

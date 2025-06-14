@@ -6,6 +6,7 @@ import SmartSuggestionsCard from './SmartSuggestionsCard';
 import WarningModal from './WarningModal';
 import EmptyTabContent from './EmptyTabContent';
 import TabContentModal from './TabContentModal';
+import TileSettingsPanel from './TileSettingsPanel';
 
 interface DashboardTileProps {
   tile: TileData;
@@ -124,7 +125,7 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
       case 'chart':
         return (
           <div className="h-full flex flex-col justify-center space-y-2 sm:space-y-3 lg:space-y-4 px-2 sm:px-3">
-            <div className={`${isTabContent ? 'text-sm sm:text-base lg:text-lg' : 'text-base sm:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl'} font-bold text-spotify-white font-spotify text-center truncate`}>
+            <div className={`${isTabContent ? 'text-sm sm:text-base lg:text-lg' : 'text-base sm:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl'} font-bold font-spotify text-center truncate drop-shadow-lg ${getTextColorClass()}`}>
               {content.value}
             </div>
             {content.chart && renderSparkline(content.chart)}
@@ -134,7 +135,7 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
       case 'metric':
         return (
           <div className="h-full flex flex-col justify-center space-y-2 sm:space-y-3 lg:space-y-4 px-2 sm:px-3">
-            <div className={`${isTabContent ? 'text-sm sm:text-base lg:text-lg' : 'text-lg sm:text-xl lg:text-2xl xl:text-3xl 2xl:text-4xl'} font-bold text-spotify-white font-spotify text-center truncate`}>
+            <div className={`${isTabContent ? 'text-sm sm:text-base lg:text-lg' : 'text-lg sm:text-xl lg:text-2xl xl:text-3xl 2xl:text-4xl'} font-bold font-spotify text-center truncate drop-shadow-lg ${getTextColorClass()}`}>
               {content.value}
             </div>
             {content.change !== undefined && (
@@ -146,7 +147,7 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
                 ) : (
                   <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                 )}
-                <span className="truncate">{Math.abs(content.change)}% from last period</span>
+                <span className="truncate drop-shadow-lg">{Math.abs(content.change)}% from last period</span>
               </div>
             )}
           </div>
@@ -155,19 +156,19 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
       case 'api':
         return (
           <div className="h-full flex flex-col justify-center space-y-2 sm:space-y-3 lg:space-y-4 px-2 sm:px-3">
-            <div className={`${isTabContent ? 'text-sm sm:text-base lg:text-lg' : 'text-sm sm:text-base lg:text-lg xl:text-xl 2xl:text-2xl'} font-bold text-spotify-white font-spotify text-center truncate`}>
+            <div className={`${isTabContent ? 'text-sm sm:text-base lg:text-lg' : 'text-sm sm:text-base lg:text-lg xl:text-xl 2xl:text-2xl'} font-bold font-spotify text-center truncate drop-shadow-lg ${getTextColorClass()}`}>
               {content.value}
             </div>
-            <div className="flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-spotify-text-gray">
+            <div className={`flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm ${getDescriptionColorClass()}`}>
               <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-spotify-green rounded-full animate-pulse flex-shrink-0"></div>
-              <span className="font-spotify truncate">Live API Data</span>
+              <span className="font-spotify truncate drop-shadow-lg">Live API Data</span>
             </div>
           </div>
         );
       
       default:
         return (
-          <div className="h-full flex items-center justify-center text-sm sm:text-base lg:text-lg xl:text-xl 2xl:text-2xl font-bold text-spotify-white font-spotify px-2 text-center">
+          <div className={`h-full flex items-center justify-center text-sm sm:text-base lg:text-lg xl:text-xl 2xl:text-2xl font-bold font-spotify px-2 text-center drop-shadow-lg ${getTextColorClass()}`}>
             {content.value}
           </div>
         );
@@ -184,13 +185,13 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
               <Brain className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 xl:w-6 xl:h-6 text-spotify-black" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-sm sm:text-base lg:text-lg xl:text-xl font-bold text-spotify-white font-spotify truncate">Ask AI</div>
-              <div className="text-xs sm:text-sm text-spotify-green font-spotify truncate">Sports Intelligence</div>
+              <div className={`text-sm sm:text-base lg:text-lg xl:text-xl font-bold font-spotify truncate drop-shadow-lg ${getTextColorClass()}`}>Ask AI</div>
+              <div className="text-xs sm:text-sm text-spotify-green font-spotify truncate drop-shadow-lg">Sports Intelligence</div>
             </div>
           </div>
-          <div className="flex items-center space-x-2 text-xs sm:text-sm text-spotify-text-gray">
+          <div className={`flex items-center space-x-2 text-xs sm:text-sm ${getDescriptionColorClass()}`}>
             <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-spotify-green animate-pulse flex-shrink-0" />
-            <span className="font-spotify truncate">Click to open AI assistant</span>
+            <span className="font-spotify truncate drop-shadow-lg">Click to open AI assistant</span>
           </div>
         </div>
       );
@@ -224,15 +225,10 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
     } else if (activeTab === 4) {
       // Settings tab
       return (
-        <div className="h-full flex flex-col justify-center items-center px-2 space-y-3">
-          <div className="w-12 h-12 bg-spotify-green/20 rounded-lg flex items-center justify-center">
-            <Settings className="w-6 h-6 text-spotify-green" />
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-medium text-spotify-white mb-1 font-spotify">Tile Settings</p>
-            <p className="text-xs text-spotify-text-gray font-spotify">Configure this tile</p>
-          </div>
-        </div>
+        <TileSettingsPanel 
+          tile={tile} 
+          onUpdateTile={onTileUpdate}
+        />
       );
     }
 
@@ -240,16 +236,38 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
     return renderContentForType(tile);
   };
 
+  // Apply custom settings
+  const getBackgroundClass = () => {
+    if (tile.settings?.backgroundColor) {
+      return tile.settings.backgroundColor;
+    }
+    return 'bg-spotify-dark-gray';
+  };
+
+  const getTextColorClass = () => {
+    return tile.settings?.textColor || 'text-spotify-white';
+  };
+
+  const getDescriptionColorClass = () => {
+    // If custom text color is set, use a slightly muted version
+    if (tile.settings?.textColor) {
+      return tile.settings.textColor.replace('400', '300'); // Make description slightly lighter
+    }
+    return 'text-spotify-text-gray';
+  };
+
   // Special styling for AI tiles
   const isAITile = tile.id === 'ai-insights' || tile.id === 'smart-suggestions';
   
   const tileClasses = `
-    group relative w-full h-full bg-spotify-dark-gray rounded-xl border overflow-hidden
+    group relative w-full h-full rounded-xl overflow-hidden
     transition-all duration-300
+    ${getBackgroundClass()}
+    border border-spotify-light-gray/20
     ${isAITile ? 'cursor-pointer' : ''}
     ${isHovered ? 'scale-[1.02] shadow-2xl shadow-spotify-green/20' : ''}
     ${isDeleting ? 'opacity-0 scale-95' : ''}
-    border-spotify-light-gray/20 hover:border-spotify-green/30
+    hover:border-spotify-green/30
   `;
 
   return (
@@ -301,16 +319,16 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
 
         {/* HEADER */}
         <div className="absolute top-3 left-3 right-20 z-10 pointer-events-none">
-          <h3 className="text-spotify-white font-bold text-sm leading-tight mb-1 font-spotify truncate">
+          <h3 className={`font-bold text-sm leading-tight mb-1 font-spotify truncate drop-shadow-lg ${getTextColorClass()}`}>
             {tile.title}
           </h3>
-          <p className="text-spotify-text-gray text-xs line-clamp-2 font-spotify">
+          <p className={`text-xs line-clamp-2 font-spotify drop-shadow-lg ${getDescriptionColorClass()}`}>
             {tile.description}
           </p>
         </div>
 
         {/* CONTENT - Adjusted for smaller tabs */}
-        <div className="pt-16 pb-6 px-4" style={{ height: 'calc(100% - 24px)' }}>
+        <div className="pt-16 pb-6 px-4 relative z-10" style={{ height: 'calc(100% - 24px)' }}>
           {renderTileContent()}
         </div>
 
@@ -385,7 +403,7 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
                   : 'text-spotify-text-gray hover:text-spotify-white hover:bg-spotify-light-gray/50'
               }`}
               style={{ width: '10%' }}
-              title="Settings"
+              title="Tile Settings"
             >
               <Settings className="w-3 h-3" />
               {activeTab === 4 && (
@@ -395,11 +413,11 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
           </div>
         </div>
 
-        {/* TIMESTAMP - Above tabs */}
-        {tile.id !== 'smart-suggestions' && (
-          <div className="absolute bottom-8 left-16 right-16 flex items-center justify-center space-x-1 text-xs text-spotify-text-gray font-spotify">
+        {/* TIMESTAMP - Above tabs (only show when not in settings tab) */}
+        {tile.id !== 'smart-suggestions' && activeTab !== 4 && (
+          <div className={`absolute bottom-8 left-16 right-16 flex items-center justify-center space-x-1 text-xs font-spotify z-10 ${getDescriptionColorClass()}`}>
             <Clock className="w-3 h-3 flex-shrink-0" />
-            <span className="truncate">{tile.lastUpdated}</span>
+            <span className="truncate drop-shadow-lg">{tile.lastUpdated}</span>
           </div>
         )}
 
@@ -419,6 +437,12 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
         {isCast && (
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-spotify-green rounded-l-xl pointer-events-none" />
         )}
+
+        {/* Custom Settings Visual Indicator - Small dot */}
+        {(tile.settings?.backgroundColor && tile.settings.backgroundColor !== 'bg-spotify-dark-gray') || 
+         tile.settings?.textColor ? (
+          <div className="absolute top-3 left-3 w-2 h-2 bg-spotify-green rounded-full opacity-60 pointer-events-none z-20" title="Custom styling applied" />
+        ) : null}
       </div>
 
       {/* AI Insights Modal */}
