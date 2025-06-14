@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, Cast, RotateCcw } from 'lucide-react';
+import { Loader2, Cast, RotateCcw, Tv } from 'lucide-react';
 import DashboardTile from './DashboardTile';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import WarningModal from './WarningModal';
 import GhostTile from './GhostTile';
 import TileSelectionModal from './TileSelectionModal';
+import CastingModal from './CastingModal';
 import { TileData } from '../types/dashboard';
 import { useLayoutPersistence } from '../hooks/useLayoutPersistence';
 import { getDefaultTilesForView } from '../data/mockData';
@@ -50,6 +51,14 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
   // Tile addition states
   const [showTileSelection, setShowTileSelection] = useState(false);
 
+  // Casting states
+  const [showCastingModal, setShowCastingModal] = useState(false);
+
+  // Check if tile is in the bottom 4 tiles (last 4 in the array)
+  const isTileNonDraggable = useCallback((index: number, totalTiles: number) => {
+    return index >= totalTiles - 4;
+  }, []);
+
   // Load saved layout or use defaults
   useEffect(() => {
     if (isLoading) return;
@@ -78,6 +87,13 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
   // Enhanced drag and drop handlers with Android-style behavior
   const handleDragStart = useCallback((e: React.DragEvent, tileId: string) => {
     const index = tiles.findIndex(tile => tile.id === tileId);
+    
+    // Prevent dragging for bottom 4 tiles
+    if (isTileNonDraggable(index, tiles.length)) {
+      e.preventDefault();
+      return;
+    }
+    
     setDraggedTile(tileId);
     setDraggedIndex(index);
     setIsDragging(true);
@@ -100,7 +116,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
     document.body.appendChild(dragImage);
     e.dataTransfer.setDragImage(dragImage, dragOffset.x, dragOffset.y);
     setTimeout(() => document.body.removeChild(dragImage), 0);
-  }, [tiles, dragOffset.x, dragOffset.y]);
+  }, [tiles, dragOffset.x, dragOffset.y, isTileNonDraggable]);
 
   const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
     e.preventDefault();
@@ -108,12 +124,23 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
     
     if (draggedIndex === null || draggedIndex === index) return;
     
+    // Prevent dropping on bottom 4 tiles
+    if (isTileNonDraggable(index, tiles.length)) {
+      e.dataTransfer.dropEffect = 'none';
+      return;
+    }
+    
     setHoverIndex(index);
-  }, [draggedIndex]);
+  }, [draggedIndex, tiles.length, isTileNonDraggable]);
 
   const handleDragEnter = useCallback((e: React.DragEvent, index: number) => {
     e.preventDefault();
     if (draggedIndex === null || draggedIndex === index) return;
+    
+    // Prevent dropping on bottom 4 tiles
+    if (isTileNonDraggable(index, tiles.length)) {
+      return;
+    }
     
     // Real-time tile shifting - create preview of new order
     const newTiles = [...tiles];
@@ -124,7 +151,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
     setTiles(newTiles);
     setDraggedIndex(index);
     setHoverIndex(index);
-  }, [draggedIndex, tiles]);
+  }, [draggedIndex, tiles, isTileNonDraggable]);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     // Only clear hover if leaving the entire grid area
@@ -138,6 +165,11 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
     e.preventDefault();
     
     if (!draggedTile || draggedIndex === null) return;
+
+    // Prevent dropping on bottom 4 tiles
+    if (isTileNonDraggable(targetIndex, tiles.length)) {
+      return;
+    }
 
     // The tiles have already been reordered in real-time during drag
     // Just need to save the final state
@@ -160,7 +192,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
     setDraggedIndex(null);
     setHoverIndex(null);
     setIsDragging(false);
-  }, [draggedTile, draggedIndex, tiles, view, castTileData, castTiles, saveLayout]);
+  }, [draggedTile, draggedIndex, tiles, view, castTileData, castTiles, saveLayout, isTileNonDraggable]);
 
   const handleDragEnd = useCallback(() => {
     // Clean up drag states
@@ -318,6 +350,11 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
     }
   }, [tiles, view, castTiles, castTileData, saveLayout]);
 
+  // Handle casting
+  const handleCastNow = useCallback(() => {
+    setShowCastingModal(true);
+  }, []);
+
   if (isLoading) {
     return (
       <div className="w-full h-screen flex items-center justify-center p-4">
@@ -366,13 +403,24 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
             </h2>
             <p className="text-spotify-text-gray font-spotify text-sm sm:text-base">
               {view === 'ai-tools' 
-                ? `${castTiles.size} tiles - 2-column mobile layout`
-                : '2 tiles wide on mobile - fully responsive'
+                ? `${castTiles.size} tiles - Bottom 4 tiles locked`
+                : '2 tiles wide on mobile - Bottom 4 tiles locked'
               }
             </p>
           </div>
           
           <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Cast Now Button - Only show on Stacc Cast page */}
+            {view === 'ai-tools' && castTiles.size > 0 && (
+              <button
+                onClick={handleCastNow}
+                className="flex items-center space-x-2 px-4 sm:px-6 py-3 bg-spotify-green hover:bg-spotify-green-dark text-spotify-black font-bold rounded-full transition-all shadow-lg shadow-spotify-green/20 hover:shadow-xl hover:shadow-spotify-green/30 hover:scale-105 font-spotify text-sm sm:text-base"
+              >
+                <Tv className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Cast Now</span>
+              </button>
+            )}
+            
             <button
               onClick={handleResetLayoutClick}
               disabled={isResetting}
@@ -401,6 +449,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
             {tiles.map((tile, index) => {
               const isDraggedTile = draggedTile === tile.id;
               const isHovering = hoverIndex === index && isDragging && !isDraggedTile;
+              const isNonDraggable = isTileNonDraggable(index, tiles.length);
               
               return (
                 <div
@@ -415,17 +464,28 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
                     isDragging && !isDraggedTile 
                       ? 'transition-transform duration-300 ease-out' 
                       : ''
+                  } ${
+                    isNonDraggable 
+                      ? 'ring-1 ring-orange-500/30 bg-orange-500/5' 
+                      : ''
                   }`}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, tile.id)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnter={(e) => handleDragEnter(e, index)}
-                  onDrop={(e) => handleDrop(e, index)}
-                  onDragEnd={handleDragEnd}
+                  draggable={!isNonDraggable}
+                  onDragStart={!isNonDraggable ? (e) => handleDragStart(e, tile.id) : undefined}
+                  onDragOver={!isNonDraggable ? (e) => handleDragOver(e, index) : undefined}
+                  onDragEnter={!isNonDraggable ? (e) => handleDragEnter(e, index) : undefined}
+                  onDrop={!isNonDraggable ? (e) => handleDrop(e, index) : undefined}
+                  onDragEnd={!isNonDraggable ? handleDragEnd : undefined}
                 >
                   {/* Android-style insertion indicator */}
-                  {isHovering && (
+                  {isHovering && !isNonDraggable && (
                     <div className="absolute inset-0 border-2 border-dashed border-spotify-green bg-spotify-green/10 rounded-xl z-10 pointer-events-none animate-pulse" />
+                  )}
+                  
+                  {/* Non-draggable indicator */}
+                  {isNonDraggable && (
+                    <div className="absolute top-2 right-2 bg-orange-500/80 text-white text-xs px-2 py-1 rounded-full z-30 pointer-events-none font-spotify">
+                      🔒 Locked
+                    </div>
                   )}
                   
                   <DashboardTile
@@ -434,7 +494,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
                     onDelete={handleDeleteTile}
                     onCast={handleCastTile}
                     isDeleting={deletingTile === tile.id}
-                    isDraggable={true}
+                    isDraggable={!isNonDraggable}
                     isCast={castTiles.has(tile.id)}
                     currentView={view}
                   />
@@ -459,6 +519,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
               <p className="text-spotify-text-gray text-xs sm:text-sm font-spotify">
                 Total tiles: <strong className="text-spotify-green">{tiles.length}</strong> • 
                 Cast tiles: <strong className="text-spotify-green">{castTiles.size}</strong> • 
+                Draggable: <strong className="text-spotify-green">{Math.max(0, tiles.length - 4)}</strong> • 
                 Layout: <strong className="text-spotify-green">2-Col Mobile Responsive</strong>
               </p>
             </div>
@@ -492,6 +553,18 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
         onClose={() => setShowTileSelection(false)}
         onSelectTile={handleSelectTile}
         currentView={view}
+      />
+
+      {/* Casting Modal */}
+      <CastingModal
+        isOpen={showCastingModal}
+        onClose={() => setShowCastingModal(false)}
+        dashboardContent={{
+          tiles: tiles,
+          castTiles: Array.from(castTiles),
+          view: view,
+          timestamp: new Date().toISOString()
+        }}
       />
     </div>
   );
