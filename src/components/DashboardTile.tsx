@@ -1,5 +1,5 @@
 import React, { useState, forwardRef } from 'react';
-import { TrendingUp, TrendingDown, Clock, Brain, Sparkles, X, Cast, GripVertical } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, Brain, Sparkles, X, Cast, GripVertical, Settings } from 'lucide-react';
 import { TileData } from '../types/dashboard';
 import AIInsightsModal from './AIInsightsModal';
 import SmartSuggestionsCard from './SmartSuggestionsCard';
@@ -29,6 +29,7 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [showUncastWarning, setShowUncastWarning] = useState(false);
+  const [activeTab, setActiveTab] = useState(1);
 
   const handleCastClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -50,6 +51,12 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
 
   const cancelUncast = () => {
     setShowUncastWarning(false);
+  };
+
+  const handleTabClick = (tabNumber: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setActiveTab(tabNumber);
   };
 
   const renderSparkline = (data: number[]) => {
@@ -207,7 +214,7 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
         <button
           onClick={handleCastClick}
           onMouseDown={(e) => e.stopPropagation()}
-          className={`absolute bottom-3 left-3 p-2 rounded-full transition-all duration-300 z-20 opacity-0 group-hover:opacity-100 ${
+          className={`absolute bottom-8 left-3 p-2 rounded-full transition-all duration-300 z-20 opacity-0 group-hover:opacity-100 ${
             isCast 
               ? 'bg-spotify-green text-spotify-black shadow-lg shadow-spotify-green/30 opacity-100' 
               : 'bg-spotify-medium-gray/80 text-spotify-text-gray hover:text-spotify-white hover:bg-spotify-green hover:text-spotify-black hover:shadow-lg hover:shadow-spotify-green/30'
@@ -227,14 +234,95 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
           </p>
         </div>
 
-        {/* CONTENT */}
-        <div className="pt-16 pb-14 px-4 h-full">
+        {/* CONTENT - Adjusted for smaller tabs */}
+        <div className="pt-16 pb-6 px-4" style={{ height: 'calc(100% - 24px)' }}>
           {renderTileContent()}
         </div>
 
-        {/* FOOTER - TIME ONLY */}
+        {/* MODERN SLEEK TABS - 6% of tile height (24px) */}
+        <div className="absolute bottom-0 left-0 right-0 h-6 bg-spotify-medium-gray/60 backdrop-blur-sm border-t border-spotify-light-gray/20 z-10">
+          <div className="flex h-full">
+            
+            {/* TAB 1 - 30% width */}
+            <button
+              onClick={(e) => handleTabClick(1, e)}
+              onMouseDown={(e) => e.stopPropagation()}
+              className={`flex-1 flex items-center justify-center text-xs font-medium transition-all duration-200 relative ${
+                activeTab === 1 
+                  ? 'bg-spotify-green text-spotify-black shadow-lg shadow-spotify-green/20' 
+                  : 'text-spotify-text-gray hover:text-spotify-white hover:bg-spotify-light-gray/50'
+              }`}
+              style={{ width: '30%' }}
+              title="Tab 1"
+            >
+              1
+              {activeTab === 1 && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-spotify-green" />
+              )}
+            </button>
+
+            {/* TAB 2 - 30% width */}
+            <button
+              onClick={(e) => handleTabClick(2, e)}
+              onMouseDown={(e) => e.stopPropagation()}
+              className={`flex-1 flex items-center justify-center text-xs font-medium transition-all duration-200 relative ${
+                activeTab === 2 
+                  ? 'bg-spotify-green text-spotify-black shadow-lg shadow-spotify-green/20' 
+                  : 'text-spotify-text-gray hover:text-spotify-white hover:bg-spotify-light-gray/50'
+              }`}
+              style={{ width: '30%' }}
+              title="Tab 2"
+            >
+              2
+              {activeTab === 2 && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-spotify-green" />
+              )}
+            </button>
+
+            {/* TAB 3 - 30% width */}
+            <button
+              onClick={(e) => handleTabClick(3, e)}
+              onMouseDown={(e) => e.stopPropagation()}
+              className={`flex-1 flex items-center justify-center text-xs font-medium transition-all duration-200 relative ${
+                activeTab === 3 
+                  ? 'bg-spotify-green text-spotify-black shadow-lg shadow-spotify-green/20' 
+                  : 'text-spotify-text-gray hover:text-spotify-white hover:bg-spotify-light-gray/50'
+              }`}
+              style={{ width: '30%' }}
+              title="Tab 3"
+            >
+              3
+              {activeTab === 3 && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-spotify-green" />
+              )}
+            </button>
+
+            {/* SEPARATOR */}
+            <div className="w-px bg-spotify-light-gray/30 my-1" />
+
+            {/* TAB 4 (Settings) - 10% width */}
+            <button
+              onClick={(e) => handleTabClick(4, e)}
+              onMouseDown={(e) => e.stopPropagation()}
+              className={`flex items-center justify-center text-xs font-medium transition-all duration-200 relative ${
+                activeTab === 4 
+                  ? 'bg-spotify-green text-spotify-black shadow-lg shadow-spotify-green/20' 
+                  : 'text-spotify-text-gray hover:text-spotify-white hover:bg-spotify-light-gray/50'
+              }`}
+              style={{ width: '10%' }}
+              title="Settings"
+            >
+              <Settings className="w-3 h-3" />
+              {activeTab === 4 && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-spotify-green" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* TIMESTAMP - Above tabs */}
         {tile.id !== 'smart-suggestions' && (
-          <div className="absolute bottom-3 left-16 right-16 flex items-center justify-center space-x-1 text-xs text-spotify-text-gray font-spotify">
+          <div className="absolute bottom-8 left-16 right-16 flex items-center justify-center space-x-1 text-xs text-spotify-text-gray font-spotify">
             <Clock className="w-3 h-3 flex-shrink-0" />
             <span className="truncate">{tile.lastUpdated}</span>
           </div>
