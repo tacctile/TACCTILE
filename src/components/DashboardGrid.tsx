@@ -20,8 +20,13 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
   const [castTiles, setCastTiles] = useState<Set<string>>(new Set());
   const [castTileData, setCastTileData] = useState<{ [key: string]: TileData }>({});
   const [isResetting, setIsResetting] = useState(false);
+  
+  // Android-style drag and drop states
   const [draggedTile, setDraggedTile] = useState<string | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
   
   // Warning modal states
   const [showClearAllWarning, setShowClearAllWarning] = useState(false);
@@ -51,56 +56,100 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
     setTiles(tilesToShow);
   }, [view, loadLayout, isLoading]);
 
-  // Simple drag and drop handlers for all views
+  // Enhanced drag and drop handlers with Android-style behavior
   const handleDragStart = useCallback((e: React.DragEvent, tileId: string) => {
-    e.dataTransfer.setData('text/plain', tileId);
+    const index = tiles.findIndex(tile => tile.id === tileId);
     setDraggedTile(tileId);
-  }, []);
+    setDraggedIndex(index);
+    setIsDragging(true);
+    
+    // Get the drag image offset
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    });
+    
+    // Make drag image slightly transparent
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', tileId);
+    
+    // Create a custom drag image
+    const dragImage = (e.target as HTMLElement).cloneNode(true) as HTMLElement;
+    dragImage.style.transform = 'rotate(2deg) scale(0.95)';
+    dragImage.style.opacity = '0.8';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, dragOffset.x, dragOffset.y);
+    setTimeout(() => document.body.removeChild(dragImage), 0);
+  }, [tiles, dragOffset.x, dragOffset.y]);
 
   const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
     e.preventDefault();
-    setDragOverIndex(index);
-  }, []);
+    e.dataTransfer.dropEffect = 'move';
+    
+    if (draggedIndex === null || draggedIndex === index) return;
+    
+    setHoverIndex(index);
+  }, [draggedIndex]);
 
-  const handleDragLeave = useCallback(() => {
-    setDragOverIndex(null);
+  const handleDragEnter = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    
+    // Real-time tile shifting - create preview of new order
+    const newTiles = [...tiles];
+    const [draggedTileData] = newTiles.splice(draggedIndex, 1);
+    newTiles.splice(index, 0, draggedTileData);
+    
+    // Update the visual order immediately
+    setTiles(newTiles);
+    setDraggedIndex(index);
+    setHoverIndex(index);
+  }, [draggedIndex, tiles]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    // Only clear hover if leaving the entire grid area
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (!relatedTarget || !relatedTarget.closest('[data-grid-container]')) {
+      setHoverIndex(null);
+    }
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent, targetIndex: number) => {
     e.preventDefault();
-    const draggedTileId = e.dataTransfer.getData('text/plain');
     
-    if (!draggedTileId) return;
+    if (!draggedTile || draggedIndex === null) return;
 
-    setTiles(prevTiles => {
-      const newTiles = [...prevTiles];
-      const draggedIndex = newTiles.findIndex(tile => tile.id === draggedTileId);
-      
-      if (draggedIndex === -1) return prevTiles;
-      
-      // Remove the dragged tile from its current position
-      const [draggedTile] = newTiles.splice(draggedIndex, 1);
-      
-      // Insert it at the target position
-      newTiles.splice(targetIndex, 0, draggedTile);
-      
-      // Save the new order
-      if (view === 'ai-tools') {
-        // For Stacc Cast, update cast tile data
-        const newCastTileData = { ...castTileData };
-        const newCastTileIds = newTiles.map(tile => tile.id);
-        saveLayout(view, [], newTiles, undefined, newCastTileIds, newCastTileData);
-      } else {
-        // For other views, just save the tile order
-        saveLayout(view, [], newTiles, undefined, Array.from(castTiles), castTileData);
-      }
-      
-      return newTiles;
-    });
+    // The tiles have already been reordered in real-time during drag
+    // Just need to save the final state
+    const finalTiles = [...tiles];
+    
+    // Save the new order
+    if (view === 'ai-tools') {
+      // For Stacc Cast, update cast tile data
+      const newCastTileData = { ...castTileData };
+      const newCastTileIds = finalTiles.map(t => t.id);
+      setCastTiles(new Set(newCastTileIds));
+      saveLayout(view, [], finalTiles, undefined, newCastTileIds, newCastTileData);
+    } else {
+      // For other views, just save the tile order
+      saveLayout(view, [], finalTiles, undefined, Array.from(castTiles), castTileData);
+    }
 
+    // Clean up drag states
     setDraggedTile(null);
-    setDragOverIndex(null);
-  }, [view, castTileData, castTiles, saveLayout]);
+    setDraggedIndex(null);
+    setHoverIndex(null);
+    setIsDragging(false);
+  }, [draggedTile, draggedIndex, tiles, view, castTileData, castTiles, saveLayout]);
+
+  const handleDragEnd = useCallback(() => {
+    // Clean up drag states
+    setDraggedTile(null);
+    setDraggedIndex(null);
+    setHoverIndex(null);
+    setIsDragging(false);
+  }, []);
 
   const handleTileUpdate = useCallback((updatedTile: TileData) => {
     setTiles(prev => prev.map(tile => 
@@ -256,8 +305,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
             </h2>
             <p className="text-spotify-text-gray font-spotify">
               {view === 'ai-tools' 
-                ? `${castTiles.size} tiles in your cast collection - drag and drop to reorder`
-                : 'Drag and drop tiles to reorder your dashboard layout'
+                ? `${castTiles.size} tiles in your cast collection - drag to reorder with live preview`
+                : 'Drag tiles to reorder - tiles shift smoothly like Android interface'
               }
             </p>
           </div>
@@ -279,42 +328,58 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
           </div>
         </div>
 
-        {/* UNIFIED GRID - CSS Grid with drag and drop for all views */}
-        <div className={`transition-all duration-500 ${
-          isResetting ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
-        }`}>
+        {/* ANDROID-STYLE DRAG & DROP GRID */}
+        <div 
+          className={`transition-all duration-500 ${
+            isResetting ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
+          }`}
+          data-grid-container="true"
+          onDragLeave={handleDragLeave}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {tiles.map((tile, index) => (
-              <div
-                key={tile.id}
-                className={`w-full h-80 relative transition-all duration-300 ${
-                  dragOverIndex === index ? 'transform scale-105 z-10' : ''
-                } ${
-                  draggedTile === tile.id ? 'opacity-50 transform rotate-2 scale-95' : ''
-                }`}
-                draggable
-                onDragStart={(e) => handleDragStart(e, tile.id)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, index)}
-              >
-                {/* Drop indicator */}
-                {dragOverIndex === index && draggedTile !== tile.id && (
-                  <div className="absolute inset-0 border-2 border-dashed border-spotify-green bg-spotify-green/10 rounded-xl z-10 pointer-events-none" />
-                )}
-                
-                <DashboardTile
-                  tile={tile}
-                  onTileUpdate={handleTileUpdate}
-                  onDelete={handleDeleteTile}
-                  onCast={handleCastTile}
-                  isDeleting={deletingTile === tile.id}
-                  isDraggable={true}
-                  isCast={castTiles.has(tile.id)}
-                  currentView={view}
-                />
-              </div>
-            ))}
+            {tiles.map((tile, index) => {
+              const isDraggedTile = draggedTile === tile.id;
+              const isHovering = hoverIndex === index && isDragging && !isDraggedTile;
+              
+              return (
+                <div
+                  key={tile.id}
+                  className={`w-full h-80 relative transition-all duration-300 ${
+                    isDraggedTile 
+                      ? 'opacity-30 scale-95 rotate-2 z-50' 
+                      : isHovering 
+                        ? 'transform scale-105 shadow-lg shadow-spotify-green/20 z-10' 
+                        : 'z-0'
+                  } ${
+                    isDragging && !isDraggedTile 
+                      ? 'transition-transform duration-300 ease-out' 
+                      : ''
+                  }`}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, tile.id)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnter={(e) => handleDragEnter(e, index)}
+                  onDrop={(e) => handleDrop(e, index)}
+                  onDragEnd={handleDragEnd}
+                >
+                  {/* Android-style insertion indicator */}
+                  {isHovering && (
+                    <div className="absolute inset-0 border-2 border-dashed border-spotify-green bg-spotify-green/10 rounded-xl z-10 pointer-events-none animate-pulse" />
+                  )}
+                  
+                  <DashboardTile
+                    tile={tile}
+                    onTileUpdate={handleTileUpdate}
+                    onDelete={handleDeleteTile}
+                    onCast={handleCastTile}
+                    isDeleting={deletingTile === tile.id}
+                    isDraggable={true}
+                    isCast={castTiles.has(tile.id)}
+                    currentView={view}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -323,12 +388,12 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
           <div className="mt-8 sm:mt-12 lg:mt-16 p-3 sm:p-4 lg:p-6 bg-spotify-dark-gray/30 rounded-xl border border-spotify-light-gray/20 w-full max-w-full">
             <div className="text-center">
               <p className="text-spotify-text-gray font-spotify mb-2 text-xs sm:text-sm lg:text-base">
-                🚀 <strong className="text-spotify-white">Simple Drag & Drop:</strong> Drag tiles to reorder them - tiles flow naturally one after another
+                📱 <strong className="text-spotify-white">Android-Style Drag & Drop:</strong> Tiles shift in real-time as you drag, creating smooth insertion previews
               </p>
               <p className="text-spotify-text-gray text-xs sm:text-sm font-spotify">
                 Total tiles: <strong className="text-spotify-green">{tiles.length}</strong> • 
                 Global cast tiles: <strong className="text-spotify-green">{castTiles.size}</strong> • 
-                Layout: <strong className="text-spotify-green">Dynamic Flow</strong>
+                Layout: <strong className="text-spotify-green">Dynamic Android Flow</strong>
               </p>
             </div>
           </div>

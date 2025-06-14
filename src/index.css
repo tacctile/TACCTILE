@@ -2,51 +2,92 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Simple drag and drop styling for all views */
+/* Android-style drag and drop styling */
 .dragging {
-  opacity: 0.5;
+  opacity: 0.3;
   transform: rotate(2deg) scale(0.95);
   z-index: 1000;
+  transition: all 0.2s ease-out;
 }
 
 .drag-over {
   transform: scale(1.05);
   border-color: #1DB954;
+  box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.3);
 }
 
-/* Smooth transitions for tiles */
+/* Smooth transitions for tiles during Android-style drag */
 .tile-transition {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-/* Drop zone indicator */
-.drop-indicator {
+.tile-shift {
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Real-time insertion preview */
+.insertion-preview {
   border: 2px dashed #1DB954;
   background-color: rgba(29, 185, 84, 0.1);
   border-radius: 12px;
+  animation: pulse-insertion 1.5s infinite;
 }
 
-/* Hover effects */
-.tile-hover:hover {
-  transform: scale(1.02);
-  box-shadow: 0 10px 25px rgba(29, 185, 84, 0.15);
-}
-
-/* Animation keyframes */
-@keyframes pulse-green {
+@keyframes pulse-insertion {
   0%, 100% {
     background-color: rgba(29, 185, 84, 0.1);
+    border-color: rgba(29, 185, 84, 0.6);
   }
   50% {
     background-color: rgba(29, 185, 84, 0.2);
+    border-color: rgba(29, 185, 84, 0.8);
   }
 }
 
-.pulse-green {
-  animation: pulse-green 2s infinite;
+/* Enhanced hover effects for better feedback */
+.tile-hover:hover {
+  transform: scale(1.02);
+  box-shadow: 0 10px 25px rgba(29, 185, 84, 0.15);
+  transition: all 0.2s ease-out;
 }
 
-/* Mobile responsiveness for drag operations */
+/* Smooth grid animations */
+.grid-container {
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Android-style smooth movements */
+@keyframes android-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.android-slide-in {
+  animation: android-slide-in 0.3s ease-out;
+}
+
+/* Drag ghost styling */
+.drag-ghost {
+  opacity: 0.8;
+  transform: rotate(2deg) scale(0.95);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(29, 185, 84, 0.4);
+}
+
+/* Real-time preview during drag */
+.live-preview {
+  transition: all 0.2s ease-out;
+  border: 2px dashed rgba(29, 185, 84, 0.6);
+  background: rgba(29, 185, 84, 0.05);
+}
+
+/* Mobile responsiveness for Android-style drag */
 @media (max-width: 768px) {
   .dragging {
     transform: rotate(1deg) scale(0.98);
@@ -54,6 +95,10 @@
   
   .drag-over {
     transform: scale(1.02);
+  }
+  
+  .tile-transition {
+    transition: transform 0.25s ease-out;
   }
 }
 
