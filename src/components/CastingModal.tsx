@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Wifi, Loader2, Play, Square, RefreshCw, Cast, CheckCircle, AlertCircle, Info, Tv } from 'lucide-react';
+import { X, Tv, Loader2, CheckCircle, AlertCircle, Monitor, Smartphone, RefreshCw, Settings, ExternalLink, Copy } from 'lucide-react';
 import { castingService, CastDevice, CastSession } from '../services/castingService';
 
 interface CastingModalProps {
@@ -13,24 +13,24 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
   const [currentSession, setCurrentSession] = useState<CastSession | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [castingToDevice, setCastingToDevice] = useState<string | null>(null);
-  const [castSuccess, setCastSuccess] = useState<string | null>(null);
-  const [castError, setCastError] = useState<string | null>(null);
-  const [castInfo, setCastInfo] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [showSetup, setShowSetup] = useState(false);
+  const [customAppId, setCustomAppId] = useState('');
 
   useEffect(() => {
     if (!isOpen) return;
 
-    // Clear previous messages
-    setCastSuccess(null);
-    setCastError(null);
-    setCastInfo(null);
-
-    // Start device discovery when modal opens
+    setMessage(null);
     handleScanDevices();
 
-    // Subscribe to device and session changes
     const unsubscribeDevices = castingService.onDevicesChanged(setDevices);
     const unsubscribeSession = castingService.onSessionChanged(setCurrentSession);
+
+    // Load current configuration
+    const config = castingService.getReceiverConfiguration();
+    if (config.receiverType === 'custom') {
+      setCustomAppId(config.receiverAppId);
+    }
 
     return () => {
       unsubscribeDevices();
@@ -40,17 +40,15 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
 
   const handleScanDevices = async () => {
     setIsScanning(true);
-    setCastError(null);
-    setCastInfo(null);
+    setMessage(null);
     
     try {
-      console.log('Scanning for casting devices...');
       const foundDevices = await castingService.startDeviceDiscovery();
       setDevices(foundDevices);
       console.log('Found devices:', foundDevices);
     } catch (error) {
-      console.error('Device scanning failed:', error);
-      setCastError('Failed to scan for devices. Please try again.');
+      console.error('Device scan failed:', error);
+      setMessage({ type: 'error', text: 'Failed to scan for devices' });
     } finally {
       setIsScanning(false);
     }
@@ -61,104 +59,90 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
     if (!device) return;
 
     setCastingToDevice(deviceId);
-    setCastError(null);
-    setCastSuccess(null);
-    setCastInfo(null);
-    
-    console.log('Starting cast to device:', device.name);
-    console.log('Dashboard content to cast:', dashboardContent);
+    setMessage(null);
     
     try {
-      // Prepare the dashboard content - extract only the tiles
       const contentToSend = {
         tiles: dashboardContent.tiles || [],
         timestamp: Date.now(),
         source: 'TACCTILE Dashboard'
       };
 
-      console.log('Sending content:', contentToSend);
-      
+      console.log('Casting to device:', device.name);
       const result = await castingService.castToDevice(deviceId, contentToSend);
 
       if (result === true) {
-        setCastSuccess(`✅ Successfully casting to ${device.name}! Your dashboard should appear on the screen shortly.`);
+        setMessage({ 
+          type: 'success', 
+          text: `✅ Successfully casting to ${device.name}! Your dashboard should appear on the screen.` 
+        });
         
-        // Auto-close success message after 6 seconds
-        setTimeout(() => setCastSuccess(null), 6000);
+        // Auto-close success message
+        setTimeout(() => setMessage(null), 5000);
       } else {
-        // Handle specific error types
-        if (result.includes('cancelled') || result.includes('cancel')) {
-          setCastInfo(`ℹ️ ${result}`);
-          // Auto-close info message after 4 seconds
-          setTimeout(() => setCastInfo(null), 4000);
+        if (result.includes('cancel')) {
+          setMessage({ type: 'info', text: `ℹ️ ${result}` });
+          setTimeout(() => setMessage(null), 3000);
         } else {
-          setCastError(`❌ ${result}`);
+          // Check if it's a setup message
+          if (result.includes('Setup Instructions')) {
+            setMessage({ type: 'error', text: result });
+            setShowSetup(true);
+          } else {
+            setMessage({ type: 'error', text: `❌ ${result}` });
+          }
         }
       }
     } catch (error) {
       console.error('Casting error:', error);
-      setCastError('❌ Casting failed unexpectedly. Please check your connection and try again.');
+      setMessage({ type: 'error', text: 'Casting failed unexpectedly' });
     } finally {
       setCastingToDevice(null);
     }
   };
 
   const handleStopCasting = () => {
-    console.log('Stopping casting session...');
     const success = castingService.stopCasting();
     if (success) {
-      setCastSuccess('✅ Casting stopped successfully');
-      setCastError(null);
-      setCastInfo(null);
-      // Auto-close message
-      setTimeout(() => setCastSuccess(null), 3000);
-    } else {
-      setCastError('❌ Failed to stop casting');
+      setMessage({ type: 'success', text: '✅ Casting stopped' });
+      setTimeout(() => setMessage(null), 3000);
     }
+  };
+
+  const handleSaveCustomAppId = () => {
+    if (!customAppId.trim()) {
+      setMessage({ type: 'error', text: 'Please enter a valid App ID' });
+      return;
+    }
+
+    castingService.setCustomReceiverAppId(customAppId.trim());
+    setMessage({ type: 'success', text: '✅ Custom Receiver App ID saved! Chromecast should now work.' });
+    setShowSetup(false);
+    
+    // Refresh devices to update descriptions
+    setTimeout(() => {
+      handleScanDevices();
+    }, 1000);
+  };
+
+  const handleCopyUrl = () => {
+    const url = `${window.location.origin}/cast-display.html`;
+    navigator.clipboard.writeText(url).then(() => {
+      setMessage({ type: 'success', text: '✅ URL copied to clipboard!' });
+      setTimeout(() => setMessage(null), 3000);
+    });
   };
 
   const getDeviceIcon = (device: CastDevice) => {
     switch (device.type) {
       case 'chromecast':
-        return <Tv className="w-6 h-6" />;
-      case 'airplay':
-        return <Cast className="w-6 h-6" />;
+        return <Tv className="w-5 h-5" />;
       case 'presentation':
-        return <Wifi className="w-6 h-6" />;
+        return <Monitor className="w-5 h-5" />;
       case 'window':
-        return <Square className="w-6 h-6" />;
+        return <Smartphone className="w-5 h-5" />;
       default:
-        return <Cast className="w-6 h-6" />;
-    }
-  };
-
-  const getDeviceTypeName = (type: string) => {
-    switch (type) {
-      case 'chromecast':
-        return 'Chromecast Device';
-      case 'airplay':
-        return 'AirPlay Device';
-      case 'presentation':
-        return 'Wireless Display';
-      case 'window':
-        return 'New Window/Tab';
-      default:
-        return 'Unknown Device';
-    }
-  };
-
-  const getDeviceDescription = (device: CastDevice) => {
-    switch (device.type) {
-      case 'chromecast':
-        return 'Cast to your TV via Chromecast';
-      case 'airplay':
-        return 'Cast to Apple TV or AirPlay device';
-      case 'presentation':
-        return 'Cast to wireless display';
-      case 'window':
-        return 'Open in new window/tab - works on any screen';
-      default:
-        return 'Cast to this device';
+        return <Tv className="w-5 h-5" />;
     }
   };
 
@@ -166,53 +150,117 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl max-h-[85vh] bg-spotify-dark-gray backdrop-blur-xl border border-spotify-light-gray/30 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="w-full max-w-2xl bg-spotify-dark-gray backdrop-blur-xl border border-spotify-light-gray/30 rounded-2xl shadow-2xl overflow-hidden">
         
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-spotify-light-gray/20 bg-spotify-green/10">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-spotify-green rounded-xl flex items-center justify-center">
-              <Cast className="w-6 h-6 text-spotify-black" />
+              <Tv className="w-6 h-6 text-spotify-black" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-spotify-white font-spotify">Cast Dashboard</h2>
+              <h2 className="text-xl font-bold text-spotify-white font-spotify">Cast Your Dashboard</h2>
               <p className="text-spotify-text-gray text-sm font-spotify">
-                {currentSession ? 'Currently casting your dashboard' : 'Select a device to cast your dashboard'}
+                {dashboardContent.tiles?.length || 0} tiles ready to cast
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-spotify-medium-gray text-spotify-text-gray hover:text-spotify-white transition-all"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowSetup(!showSetup)}
+              className="p-2 rounded-lg hover:bg-spotify-medium-gray text-spotify-text-gray hover:text-spotify-white transition-all"
+              title="Setup Custom Receiver"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-spotify-medium-gray text-spotify-text-gray hover:text-spotify-white transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Status Messages */}
-        {castSuccess && (
-          <div className="p-4 border-b border-spotify-light-gray/20 bg-spotify-green/10">
-            <div className="flex items-start space-x-3">
-              <CheckCircle className="w-5 h-5 text-spotify-green flex-shrink-0 mt-0.5" />
-              <p className="text-spotify-green font-spotify text-sm leading-relaxed">{castSuccess}</p>
+        {/* Setup Panel */}
+        {showSetup && (
+          <div className="p-6 border-b border-spotify-light-gray/20 bg-spotify-green/5">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3 mb-4">
+                <Settings className="w-5 h-5 text-spotify-green" />
+                <h3 className="text-lg font-semibold text-spotify-white font-spotify">Custom Receiver Setup</h3>
+              </div>
+              
+              <div className="bg-spotify-medium-gray rounded-lg p-4 space-y-3">
+                <h4 className="font-medium text-spotify-white font-spotify">🔧 Setup Instructions:</h4>
+                <ol className="text-sm text-spotify-text-gray space-y-2 list-decimal list-inside">
+                  <li>Go to <a href="https://cast.google.com/publish" target="_blank" rel="noopener noreferrer" className="text-spotify-green hover:underline inline-flex items-center">
+                    Google Cast Developer Console <ExternalLink className="w-3 h-3 ml-1" />
+                  </a></li>
+                  <li>Click "Add New Application"</li>
+                  <li>Select "Custom Receiver"</li>
+                  <li>Set receiver type to "Web Receiver"</li>
+                  <li>Use this URL for your receiver:
+                    <div className="flex items-center space-x-2 mt-2 p-2 bg-spotify-dark-gray rounded border">
+                      <code className="text-spotify-green text-xs flex-1">{window.location.origin}/cast-display.html</code>
+                      <button
+                        onClick={handleCopyUrl}
+                        className="p-1 hover:bg-spotify-light-gray rounded text-spotify-text-gray hover:text-spotify-white"
+                        title="Copy URL"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </li>
+                  <li>Save and note the App ID</li>
+                </ol>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-spotify-text-gray font-spotify">
+                  Enter your Custom Receiver App ID:
+                </label>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={customAppId}
+                    onChange={(e) => setCustomAppId(e.target.value)}
+                    placeholder="e.g., 12345678"
+                    className="flex-1 px-3 py-2 bg-spotify-medium-gray border border-spotify-light-gray/30 rounded-lg text-spotify-white placeholder-spotify-text-gray focus:border-spotify-green focus:ring-2 focus:ring-spotify-green/20 transition-all font-spotify"
+                  />
+                  <button
+                    onClick={handleSaveCustomAppId}
+                    className="px-4 py-2 bg-spotify-green hover:bg-spotify-green-dark text-spotify-black font-medium rounded-lg transition-all font-spotify"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-xs text-spotify-text-gray/70 bg-spotify-dark-gray/50 rounded p-3">
+                💡 <strong>Note:</strong> The Custom Receiver enables full dashboard casting to Chromecast. 
+                The "New Window\" option works immediately without any setup!
+              </div>
             </div>
           </div>
         )}
 
-        {castError && (
-          <div className="p-4 border-b border-spotify-light-gray/20 bg-red-500/10">
+        {/* Status Message */}
+        {message && (
+          <div className={`p-4 border-b border-spotify-light-gray/20 ${
+            message.type === 'success' ? 'bg-spotify-green/10' :
+            message.type === 'error' ? 'bg-red-500/10' : 'bg-blue-500/10'
+          }`}>
             <div className="flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-red-400 font-spotify text-sm leading-relaxed">{castError}</p>
-            </div>
-          </div>
-        )}
-
-        {castInfo && (
-          <div className="p-4 border-b border-spotify-light-gray/20 bg-blue-500/10">
-            <div className="flex items-start space-x-3">
-              <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-              <p className="text-blue-400 font-spotify text-sm leading-relaxed">{castInfo}</p>
+              {message.type === 'success' && <CheckCircle className="w-5 h-5 text-spotify-green flex-shrink-0 mt-0.5" />}
+              {message.type === 'error' && <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />}
+              {message.type === 'info' && <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />}
+              <div className={`text-sm leading-relaxed font-spotify ${
+                message.type === 'success' ? 'text-spotify-green' :
+                message.type === 'error' ? 'text-red-400' : 'text-blue-400'
+              }`}>
+                <pre className="whitespace-pre-wrap font-spotify">{message.text}</pre>
+              </div>
             </div>
           </div>
         )}
@@ -222,24 +270,21 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
           <div className="p-4 border-b border-spotify-light-gray/20 bg-spotify-green/5">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-spotify-green rounded-lg flex items-center justify-center text-spotify-black">
+                <div className="w-10 h-10 bg-spotify-green rounded-lg flex items-center justify-center">
                   {getDeviceIcon(currentSession.device)}
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-spotify-white font-spotify">
                     Casting to {currentSession.device.name}
                   </h3>
-                  <p className="text-xs text-spotify-green font-spotify">
-                    ✅ Connected • {getDeviceTypeName(currentSession.device.type)}
-                  </p>
+                  <p className="text-xs text-spotify-green font-spotify">✅ Connected</p>
                 </div>
               </div>
               <button
                 onClick={handleStopCasting}
-                className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all font-spotify"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all font-spotify text-sm"
               >
-                <Square className="w-4 h-4" />
-                <span>Stop Casting</span>
+                Stop
               </button>
             </div>
           </div>
@@ -248,31 +293,16 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
         {/* Content */}
         <div className="p-6 max-h-[50vh] overflow-y-auto">
           
-          {/* Dashboard Info */}
-          <div className="mb-6 p-4 bg-spotify-medium-gray/30 rounded-lg border border-spotify-light-gray/20">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="w-8 h-8 bg-spotify-green/20 rounded-lg flex items-center justify-center">
-                <Cast className="w-4 h-4 text-spotify-green" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-spotify-white font-spotify">Dashboard Content</h3>
-                <p className="text-xs text-spotify-text-gray font-spotify">
-                  {dashboardContent.tiles?.length || 0} tiles ready to cast
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Device List Header */}
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-spotify-white font-spotify">Available Devices</h3>
+            <h3 className="text-lg font-semibold text-spotify-white font-spotify">Cast Destinations</h3>
             <button
               onClick={handleScanDevices}
               disabled={isScanning}
-              className="flex items-center space-x-2 px-3 py-2 bg-spotify-medium-gray hover:bg-spotify-light-gray text-spotify-text-gray hover:text-spotify-white font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed font-spotify text-sm"
+              className="flex items-center space-x-2 px-3 py-2 bg-spotify-medium-gray hover:bg-spotify-light-gray text-spotify-text-gray hover:text-spotify-white rounded-lg transition-all disabled:opacity-50 font-spotify text-sm"
             >
               <RefreshCw className={`w-4 h-4 ${isScanning ? 'animate-spin' : ''}`} />
-              <span>{isScanning ? 'Scanning...' : 'Refresh'}</span>
+              <span>Refresh</span>
             </button>
           </div>
 
@@ -281,12 +311,12 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
             {devices.map((device) => (
               <div
                 key={device.id}
-                className={`p-4 rounded-xl border transition-all cursor-pointer ${
+                className={`p-4 rounded-xl border transition-all ${
                   device.status === 'connected'
                     ? 'bg-spotify-green/20 border-spotify-green/40'
                     : device.status === 'connecting'
                     ? 'bg-orange-500/20 border-orange-500/40'
-                    : 'bg-spotify-medium-gray border-spotify-light-gray/20 hover:border-spotify-green/40 hover:bg-spotify-light-gray/50'
+                    : 'bg-spotify-medium-gray border-spotify-light-gray/20 hover:border-spotify-green/40 hover:bg-spotify-light-gray/50 cursor-pointer'
                 }`}
                 onClick={() => device.status === 'available' && handleCastToDevice(device.id)}
               >
@@ -304,20 +334,20 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
                         {device.name}
                       </h4>
                       <p className="text-xs text-spotify-text-gray font-spotify">
-                        {getDeviceDescription(device)}
+                        {device.description}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-3">
-                    {/* Status */}
+                    {/* Status Indicator */}
                     <div className="flex items-center space-x-2">
                       {device.status === 'connecting' || castingToDevice === device.id ? (
                         <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
                       ) : device.status === 'connected' ? (
                         <div className="w-2 h-2 bg-spotify-green rounded-full animate-pulse" />
                       ) : (
-                        <Wifi className="w-4 h-4 text-spotify-text-gray" />
+                        <div className="w-2 h-2 bg-spotify-text-gray rounded-full" />
                       )}
                       <span className={`text-xs font-medium font-spotify ${
                         device.status === 'connected' ? 'text-spotify-green' :
@@ -325,8 +355,7 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
                         'text-spotify-text-gray'
                       }`}>
                         {device.status === 'connecting' || castingToDevice === device.id ? 'Connecting...' :
-                         device.status === 'connected' ? 'Connected' :
-                         'Available'}
+                         device.status === 'connected' ? 'Connected' : 'Available'}
                       </span>
                     </div>
 
@@ -338,14 +367,9 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
                           handleCastToDevice(device.id);
                         }}
                         disabled={castingToDevice === device.id}
-                        className="flex items-center space-x-1 px-3 py-1 bg-spotify-green hover:bg-spotify-green-dark text-spotify-black font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                        className="px-4 py-2 bg-spotify-green hover:bg-spotify-green-dark text-spotify-black font-medium rounded-lg transition-all disabled:opacity-50 text-xs"
                       >
-                        {castingToDevice === device.id ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Play className="w-3 h-3" />
-                        )}
-                        <span>Cast</span>
+                        {castingToDevice === device.id ? 'Casting...' : 'Cast'}
                       </button>
                     )}
                   </div>
@@ -358,11 +382,11 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
           {!isScanning && devices.length === 0 && (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-spotify-medium-gray rounded-full flex items-center justify-center mx-auto mb-4">
-                <Cast className="w-8 h-8 text-spotify-text-gray" />
+                <Tv className="w-8 h-8 text-spotify-text-gray" />
               </div>
               <h3 className="text-lg font-semibold text-spotify-white mb-2 font-spotify">No devices found</h3>
               <p className="text-spotify-text-gray font-spotify mb-4">
-                Make sure your casting devices are powered on and connected to the same network.
+                Try the "New Window" option - it works on any setup!
               </p>
               <button
                 onClick={handleScanDevices}
@@ -374,30 +398,23 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
           )}
 
           {/* Scanning State */}
-          {isScanning && devices.length === 0 && (
+          {isScanning && (
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-spotify-green/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Loader2 className="w-8 h-8 text-spotify-green animate-spin" />
-              </div>
-              <h3 className="text-lg font-semibold text-spotify-white mb-2 font-spotify">Scanning for devices...</h3>
-              <p className="text-spotify-text-gray font-spotify">
-                Looking for Chromecast, wireless displays, and other compatible devices
-              </p>
+              <Loader2 className="w-12 h-12 text-spotify-green animate-spin mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-spotify-white mb-2 font-spotify">Scanning...</h3>
+              <p className="text-spotify-text-gray font-spotify">Looking for available devices</p>
             </div>
           )}
         </div>
 
-        {/* Footer Instructions */}
+        {/* Footer */}
         <div className="p-6 border-t border-spotify-light-gray/20 bg-spotify-medium-gray/30">
           <div className="text-center">
-            <h4 className="text-sm font-semibold text-spotify-white mb-2 font-spotify">
-              📺 How Casting Works
-            </h4>
-            <p className="text-xs text-spotify-text-gray font-spotify mb-3">
-              Your dashboard tiles will appear on the selected display. Only the dashboard content will be shown - no sidebar or navigation.
+            <p className="text-sm text-spotify-text-gray font-spotify mb-2">
+              💡 <strong>Quick Start:</strong> Use "New Window" for immediate casting - just drag to your TV!
             </p>
             <div className="flex items-center justify-center space-x-4 text-xs text-spotify-text-gray/70">
-              <span>📺 Chromecast</span>
+              <span>📺 Custom Receiver</span>
               <span>🖥️ Wireless Display</span>
               <span>🪟 New Window</span>
             </div>

@@ -15,192 +15,195 @@
             background: linear-gradient(135deg, #000000 0%, #121212 100%);
             color: #ffffff;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            overflow-x: hidden;
-            min-height: 100vh;
+            overflow: hidden;
+            height: 100vh;
             display: flex;
             flex-direction: column;
         }
         
         .cast-header {
-            padding: 20px 30px;
+            padding: 20px 40px;
             background: rgba(29, 185, 84, 0.1);
             border-bottom: 2px solid rgba(29, 185, 84, 0.3);
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-shrink: 0;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
         }
         
         .logo {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 20px;
         }
         
         .logo-icon {
-            width: 50px;
-            height: 50px;
-            background: #1DB954;
-            border-radius: 12px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #1DB954, #1ed760);
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
             color: #000;
-            font-size: 20px;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(29, 185, 84, 0.3);
         }
         
         .logo-text {
-            font-size: 28px;
-            font-weight: bold;
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff, #1ed760);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
         .cast-status {
             display: flex;
             align-items: center;
             gap: 12px;
-            color: #1DB954;
+            padding: 12px 20px;
+            background: rgba(29, 185, 84, 0.15);
+            border: 1px solid rgba(29, 185, 84, 0.3);
+            border-radius: 25px;
             font-size: 16px;
+            font-weight: 600;
         }
         
         .status-dot {
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             background: #1DB954;
             border-radius: 50%;
             animation: pulse 2s infinite;
+            box-shadow: 0 0 10px rgba(29, 185, 84, 0.6);
         }
         
         @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.1); }
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
         }
         
         .cast-content {
             flex: 1;
-            padding: 30px;
+            padding: 40px;
             overflow-y: auto;
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
         
         .waiting-state {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             text-align: center;
-            max-width: 800px;
-            margin: 0 auto;
+            max-width: 600px;
         }
         
         .cast-icon {
-            width: 120px;
-            height: 120px;
-            background: rgba(29, 185, 84, 0.2);
+            width: 150px;
+            height: 150px;
+            background: rgba(29, 185, 84, 0.1);
+            border: 3px solid rgba(29, 185, 84, 0.3);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 30px;
-            font-size: 48px;
+            margin: 0 auto 40px;
+            font-size: 60px;
             animation: breathe 3s ease-in-out infinite;
         }
         
         @keyframes breathe {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            0%, 100% { transform: scale(1); border-color: rgba(29, 185, 84, 0.3); }
+            50% { transform: scale(1.05); border-color: rgba(29, 185, 84, 0.6); }
         }
         
         .waiting-title {
-            font-size: 36px;
-            font-weight: bold;
-            margin-bottom: 16px;
-            background: linear-gradient(135deg, #1DB954, #1ed760);
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #1DB954, #ffffff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         
         .waiting-subtitle {
-            font-size: 18px;
+            font-size: 20px;
             color: #b3b3b3;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
+            line-height: 1.5;
         }
         
-        .loading-bar {
-            width: 240px;
-            height: 3px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            overflow: hidden;
-            margin: 0 auto;
+        .loading-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 30px;
         }
         
-        .loading-progress {
-            width: 0%;
-            height: 100%;
-            background: linear-gradient(90deg, #1DB954, #1ed760);
-            border-radius: 2px;
-            animation: loading 2s ease-in-out infinite;
+        .loading-dot {
+            width: 12px;
+            height: 12px;
+            background: #1DB954;
+            border-radius: 50%;
+            animation: wave 1.4s ease-in-out infinite both;
         }
         
-        @keyframes loading {
-            0% { width: 0%; }
-            50% { width: 70%; }
-            100% { width: 100%; }
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+        .loading-dot:nth-child(3) { animation-delay: 0s; }
+        
+        @keyframes wave {
+            0%, 80%, 100% { 
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            40% { 
+                transform: scale(1.2);
+                opacity: 1;
+            }
         }
         
         .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
             width: 100%;
-            margin: 0 auto;
+            height: 100%;
+            display: grid;
+            gap: 30px;
+            padding: 20px;
+            overflow-y: auto;
+            animation: fadeIn 1s ease-out;
         }
         
-        /* Responsive grid based on screen size */
-        @media (min-width: 1200px) {
-            .dashboard-grid {
-                grid-template-columns: repeat(4, 1fr);
-                max-width: 1400px;
-            }
+        /* Responsive grid layouts */
+        @media (min-width: 1600px) {
+            .dashboard-grid { grid-template-columns: repeat(4, 1fr); }
         }
-        
-        @media (min-width: 900px) and (max-width: 1199px) {
-            .dashboard-grid {
-                grid-template-columns: repeat(3, 1fr);
-                max-width: 1100px;
-            }
+        @media (min-width: 1200px) and (max-width: 1599px) {
+            .dashboard-grid { grid-template-columns: repeat(3, 1fr); }
         }
-        
-        @media (min-width: 600px) and (max-width: 899px) {
-            .dashboard-grid {
-                grid-template-columns: repeat(2, 1fr);
-                max-width: 800px;
-            }
+        @media (min-width: 800px) and (max-width: 1199px) {
+            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
         }
-        
-        @media (max-width: 599px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-                max-width: 400px;
-            }
+        @media (max-width: 799px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
         }
         
         .tile {
-            background: rgba(40, 40, 40, 0.9);
-            border: 1px solid rgba(29, 185, 84, 0.2);
-            border-radius: 16px;
-            padding: 24px;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
+            background: linear-gradient(135deg, rgba(29, 185, 84, 0.05), rgba(40, 40, 40, 0.95));
+            border: 2px solid rgba(29, 185, 84, 0.2);
+            border-radius: 20px;
+            padding: 30px;
             position: relative;
             overflow: hidden;
-            min-height: 200px;
+            min-height: 220px;
             display: flex;
             flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            animation: slideUp 0.8s ease-out forwards;
         }
         
         .tile::before {
@@ -209,26 +212,27 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 3px;
+            height: 4px;
             background: linear-gradient(90deg, #1DB954, #1ed760);
+            border-radius: 20px 20px 0 0;
         }
         
         .tile:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 15px 30px rgba(29, 185, 84, 0.2);
+            transform: translateY(-8px) scale(1.02);
             border-color: rgba(29, 185, 84, 0.4);
+            box-shadow: 0 15px 50px rgba(29, 185, 84, 0.2);
         }
         
         .tile-header {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         
         .tile-title {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 6px;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
             color: #ffffff;
-            line-height: 1.2;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
         }
         
         .tile-description {
@@ -242,40 +246,48 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            text-align: center;
         }
         
         .tile-value {
-            font-size: 32px;
-            font-weight: bold;
-            margin-bottom: 12px;
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 15px;
             color: #1DB954;
-            text-shadow: 0 0 15px rgba(29, 185, 84, 0.3);
-            line-height: 1.1;
+            text-shadow: 0 0 20px rgba(29, 185, 84, 0.4);
+            letter-spacing: -1px;
         }
         
         .tile-change {
-            font-size: 14px;
+            font-size: 16px;
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-weight: 500;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin: 0 auto;
+            max-width: fit-content;
         }
         
         .change-positive {
             color: #1DB954;
+            background: rgba(29, 185, 84, 0.1);
+            border: 1px solid rgba(29, 185, 84, 0.3);
         }
         
         .change-negative {
             color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
         }
         
         .footer {
-            padding: 20px 30px;
+            padding: 20px 40px;
             text-align: center;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
-            color: #b3b3b3;
-            font-size: 14px;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.4);
             flex-shrink: 0;
         }
         
@@ -283,41 +295,41 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 30px;
+            gap: 40px;
             flex-wrap: wrap;
+            font-size: 14px;
+            color: #b3b3b3;
         }
         
         .footer-item {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            font-weight: 500;
         }
         
         .live-indicator {
-            width: 6px;
-            height: 6px;
+            width: 8px;
+            height: 8px;
             background: #ff4757;
             border-radius: 50%;
-            animation: pulse 1s infinite;
+            animation: livePulse 1.5s infinite;
         }
         
-        .fade-in {
-            animation: fadeIn 0.8s ease-out;
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
         }
         
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         
-        .tile-enter {
-            animation: tileEnter 0.6s ease-out forwards;
-        }
-        
-        @keyframes tileEnter {
+        @keyframes slideUp {
             from { 
                 opacity: 0; 
-                transform: translateY(30px) scale(0.95); 
+                transform: translateY(40px) scale(0.95); 
             }
             to { 
                 opacity: 1; 
@@ -325,30 +337,42 @@
             }
         }
         
-        /* High contrast mode for better TV visibility */
-        @media (prefers-contrast: high) {
-            .tile {
-                border-width: 2px;
-                border-color: rgba(29, 185, 84, 0.5);
-            }
-            
-            .tile-value {
-                text-shadow: 0 0 20px rgba(29, 185, 84, 0.5);
-            }
+        .error-state {
+            text-align: center;
+            color: #ff6b6b;
+            padding: 40px;
         }
         
-        /* Reduce motion for accessibility */
+        .error-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        
+        .retry-button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #1DB954, #1ed760);
+            color: #000;
+            border: none;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(29, 185, 84, 0.3);
+        }
+        
+        .retry-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(29, 185, 84, 0.4);
+        }
+        
+        /* Accessibility improvements */
         @media (prefers-reduced-motion: reduce) {
-            .cast-icon,
-            .status-dot,
-            .live-indicator,
-            .loading-progress {
-                animation: none;
-            }
-            
-            .tile:hover {
-                transform: none;
-                box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.4);
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
             }
         }
     </style>
@@ -357,21 +381,23 @@
     <div class="cast-header">
         <div class="logo">
             <div class="logo-icon">T</div>
-            <div class="logo-text">TACCTILE Dashboard</div>
+            <div class="logo-text">TACCTILE</div>
         </div>
         <div class="cast-status">
             <div class="status-dot"></div>
-            <span id="status-text">Connected</span>
+            <span id="status-text">Ready</span>
         </div>
     </div>
     
     <div class="cast-content" id="content">
         <div class="waiting-state">
             <div class="cast-icon">📺</div>
-            <h2 class="waiting-title">Ready to Cast</h2>
-            <p class="waiting-subtitle">Waiting for dashboard content from your device...</p>
-            <div class="loading-bar">
-                <div class="loading-progress"></div>
+            <h1 class="waiting-title">Cast Display Ready</h1>
+            <p class="waiting-subtitle">Loading your dashboard content...</p>
+            <div class="loading-indicators">
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
             </div>
         </div>
     </div>
@@ -383,291 +409,208 @@
                 <span>Live Dashboard</span>
             </div>
             <div class="footer-item">
-                <span>📺</span>
+                <span>📱</span>
                 <span>Cast from TACCTILE</span>
             </div>
             <div class="footer-item">
-                <span>⚡</span>
-                <span>Real-time Data</span>
+                <span id="tile-count">⚡ Ready</span>
             </div>
         </div>
     </div>
 
     <script>
-        // Global state
-        let isContentLoaded = false;
-        let dashboardData = null;
-        let retryAttempts = 0;
-        const maxRetries = 3;
+        console.log('TACCTILE Cast Display - Starting...');
         
-        console.log('TACCTILE Cast Display - Initializing...');
-        
-        // Initialize the cast receiver
-        function initializeCastReceiver() {
-            console.log('Setting up cast receiver...');
+        let dashboardLoaded = false;
+        let loadTimeout = null;
+
+        function updateStatus(text, isError = false) {
+            const statusEl = document.getElementById('status-text');
+            const tileCountEl = document.getElementById('tile-count');
             
-            // Listen for Presentation API messages
-            if ('presentation' in navigator && navigator.presentation.receiver) {
-                navigator.presentation.receiver.connectionList.then(list => {
-                    console.log('Presentation receiver active, connections:', list.connections.length);
-                    list.connections.forEach(connection => {
-                        setupConnection(connection);
-                    });
-                    
-                    list.addEventListener('connectionavailable', event => {
-                        console.log('New presentation connection available');
-                        setupConnection(event.connection);
-                    });
-                });
+            if (statusEl) {
+                statusEl.textContent = text;
+                statusEl.style.color = isError ? '#ff6b6b' : '#1DB954';
             }
             
-            // Listen for window messages (from new window casting)
-            window.addEventListener('message', (event) => {
-                console.log('Received window message:', event.data);
-                if (event.data && event.data.type === 'dashboard-cast') {
-                    handleDashboardData(event.data.content);
-                }
-            });
-            
-            // Check URL parameters for Chromecast custom data
-            checkURLParameters();
-            
-            // Fallback: simulate data after delay for testing
-            setTimeout(() => {
-                if (!isContentLoaded && retryAttempts < maxRetries) {
-                    console.log('No data received, simulating dashboard data...');
-                    simulateDashboardData();
-                    retryAttempts++;
-                }
-            }, 4000);
+            if (tileCountEl && !isError) {
+                tileCountEl.innerHTML = `⚡ ${text}`;
+            }
         }
-        
-        function setupConnection(connection) {
-            connection.addEventListener('message', (event) => {
-                console.log('Presentation message received:', event.data);
+
+        function showError(message) {
+            console.error('Cast display error:', message);
+            updateStatus('Error', true);
+            
+            document.getElementById('content').innerHTML = `
+                <div class="error-state">
+                    <div class="error-icon">⚠️</div>
+                    <h2 style="font-size: 32px; margin-bottom: 16px;">Connection Error</h2>
+                    <p style="font-size: 18px; margin-bottom: 30px; line-height: 1.5;">${escapeHtml(message)}</p>
+                    <button class="retry-button" onclick="window.location.reload()">
+                        🔄 Retry
+                    </button>
+                </div>
+            `;
+        }
+
+        function loadDashboardData() {
+            console.log('Loading dashboard data...');
+            
+            // Try URL parameters first - check for key parameter instead of data
+            const urlParams = new URLSearchParams(window.location.search);
+            const dataKey = urlParams.get('key');
+            const legacyDataParam = urlParams.get('data');
+            
+            // Try to load from sessionStorage using key
+            if (dataKey) {
                 try {
-                    const data = JSON.parse(event.data);
-                    if (data.type === 'dashboard-cast') {
-                        handleDashboardData(data.content);
+                    const storedData = sessionStorage.getItem(dataKey);
+                    if (storedData) {
+                        const dashboardData = JSON.parse(storedData);
+                        console.log('Data loaded from sessionStorage with key:', dataKey);
+                        displayDashboard(dashboardData);
+                        
+                        // Clean up sessionStorage after successful load
+                        sessionStorage.removeItem(dataKey);
+                        return;
+                    } else {
+                        console.warn('No data found in sessionStorage for key:', dataKey);
                     }
                 } catch (error) {
-                    console.error('Error parsing presentation message:', error);
-                }
-            });
-            
-            connection.addEventListener('close', () => {
-                console.log('Presentation connection closed');
-                updateStatus('Disconnected');
-            });
-        }
-        
-        function checkURLParameters() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('dashboardData')) {
-                try {
-                    const data = JSON.parse(decodeURIComponent(urlParams.get('dashboardData')));
-                    console.log('Dashboard data from URL parameters:', data);
-                    handleDashboardData(data);
-                } catch (error) {
-                    console.error('Error parsing URL dashboard data:', error);
+                    console.error('Error parsing sessionStorage data:', error);
                 }
             }
-        }
-        
-        function handleDashboardData(content) {
-            console.log('Processing dashboard data:', content);
             
-            if (!content) {
-                console.log('No content provided');
+            // Fallback: Try legacy URL parameter method (with better error handling)
+            if (legacyDataParam) {
+                try {
+                    const dashboardData = JSON.parse(decodeURIComponent(legacyDataParam));
+                    console.log('Data loaded from legacy URL parameter');
+                    displayDashboard(dashboardData);
+                    return;
+                } catch (error) {
+                    console.error('Error parsing legacy URL data:', error);
+                    // Don't fail silently, show helpful error message
+                    showError('Dashboard data was too large for URL transfer. Please try casting again.');
+                    return;
+                }
+            }
+            
+            // Fallback: Show demo data after timeout
+            loadTimeout = setTimeout(() => {
+                if (!dashboardLoaded) {
+                    console.log('No data received, showing demo dashboard...');
+                    showDemoData();
+                }
+            }, 3000);
+        }
+
+        function displayDashboard(data) {
+            if (dashboardLoaded) return;
+            
+            console.log('Displaying dashboard:', data);
+            
+            if (!data || !data.tiles || !Array.isArray(data.tiles)) {
+                showError('Invalid dashboard data received');
                 return;
             }
-            
-            // Extract tiles from various possible structures
-            let tiles = null;
-            if (content.tiles) {
-                tiles = content.tiles;
-            } else if (content.dashboardContent && content.dashboardContent.tiles) {
-                tiles = content.dashboardContent.tiles;
-            } else if (content.dashboard && content.dashboard.tiles) {
-                tiles = content.dashboard.tiles;
+
+            const tiles = data.tiles;
+            if (tiles.length === 0) {
+                showError('No tiles to display');
+                return;
             }
-            
-            if (tiles && tiles.length > 0) {
-                console.log(`Displaying ${tiles.length} tiles`);
-                displayDashboard({ tiles });
-                isContentLoaded = true;
-                updateStatus(`Live • ${tiles.length} tiles`);
-            } else {
-                console.log('No valid tiles found, using fallback data');
-                simulateDashboardData();
-            }
+
+            dashboardLoaded = true;
+            clearTimeout(loadTimeout);
+            updateStatus(`Live • ${tiles.length} tiles`);
+
+            const content = document.getElementById('content');
+            content.innerHTML = `
+                <div class="dashboard-grid">
+                    ${tiles.map((tile, index) => `
+                        <div class="tile" style="animation-delay: ${index * 0.1}s">
+                            <div class="tile-header">
+                                <div class="tile-title">${escapeHtml(tile.title || 'Untitled')}</div>
+                                <div class="tile-description">${escapeHtml(tile.description || '')}</div>
+                            </div>
+                            <div class="tile-content">
+                                <div class="tile-value">${escapeHtml(String(tile.value || 'N/A'))}</div>
+                                ${tile.change !== undefined ? `
+                                    <div class="tile-change ${tile.changeType === 'increase' ? 'change-positive' : 'change-negative'}">
+                                        <span>${tile.changeType === 'increase' ? '📈' : '📉'}</span>
+                                        <span>${Math.abs(Number(tile.change))}% from last period</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            console.log('Dashboard displayed successfully');
         }
-        
-        function simulateDashboardData() {
-            console.log('Simulating dashboard data for demonstration...');
-            const mockData = {
+
+        function showDemoData() {
+            const demoData = {
                 tiles: [
                     {
                         title: "Total Revenue",
-                        description: "Monthly revenue tracking with growth indicators",
+                        description: "Monthly revenue tracking",
                         value: "$89,203",
                         change: 12.4,
                         changeType: "increase"
                     },
                     {
-                        title: "Active Users",
-                        description: "Current active user count across all platforms",
+                        title: "Active Users", 
+                        description: "Current active user count",
                         value: "24,891",
                         change: 8.7,
                         changeType: "increase"
                     },
                     {
-                        title: "Conversion Rate",
-                        description: "User conversion percentage this month",
-                        value: "3.21%",
-                        change: -2.1,
-                        changeType: "decrease"
-                    },
-                    {
                         title: "API Calls",
-                        description: "Total API requests processed today",
+                        description: "Total requests processed",
                         value: "2.4M",
                         change: 15.2,
                         changeType: "increase"
                     },
                     {
-                        title: "Server Uptime",
-                        description: "System availability and reliability metrics",
-                        value: "99.9%",
-                        change: 0.1,
-                        changeType: "increase"
-                    },
-                    {
-                        title: "Page Views",
-                        description: "Total page impressions across all properties",
-                        value: "847K",
-                        change: 19.3,
-                        changeType: "increase"
-                    },
-                    {
                         title: "Response Time",
-                        description: "Average API response time in milliseconds",
+                        description: "Average response time",
                         value: "142ms",
                         change: -8.3,
                         changeType: "decrease"
-                    },
-                    {
-                        title: "Customer Satisfaction",
-                        description: "Average customer rating from recent surveys",
-                        value: "4.8/5",
-                        change: 3.2,
-                        changeType: "increase"
                     }
                 ]
             };
-            displayDashboard(mockData);
-            updateStatus(`Demo • ${mockData.tiles.length} tiles`);
-        }
-        
-        function displayDashboard(data) {
-            console.log('Displaying dashboard with data:', data);
-            const contentDiv = document.getElementById('content');
             
-            if (data && data.tiles && data.tiles.length > 0) {
-                contentDiv.innerHTML = `
-                    <div class="dashboard-grid fade-in">
-                        ${data.tiles.map((tile, index) => `
-                            <div class="tile tile-enter" style="animation-delay: ${index * 0.1}s">
-                                <div class="tile-header">
-                                    <div class="tile-title">${escapeHtml(tile.title)}</div>
-                                    <div class="tile-description">${escapeHtml(tile.description)}</div>
-                                </div>
-                                <div class="tile-content">
-                                    <div class="tile-value">${escapeHtml(tile.value)}</div>
-                                    ${tile.change !== undefined ? `
-                                        <div class="tile-change ${tile.changeType === 'increase' ? 'change-positive' : 'change-negative'}">
-                                            ${tile.changeType === 'increase' ? '📈' : '📉'} ${Math.abs(tile.change)}% from last period
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-                
-                console.log('Dashboard displayed successfully');
-                isContentLoaded = true;
-            } else {
-                console.error('Invalid dashboard data provided');
-                showError('Invalid dashboard data received');
-            }
+            updateStatus('Demo Mode');
+            displayDashboard(demoData);
         }
-        
-        function updateStatus(text) {
-            const statusElement = document.getElementById('status-text');
-            if (statusElement) {
-                statusElement.textContent = text;
-            }
-        }
-        
-        function showError(message) {
-            const contentDiv = document.getElementById('content');
-            contentDiv.innerHTML = `
-                <div class="waiting-state">
-                    <div class="cast-icon">⚠️</div>
-                    <h2 class="waiting-title">Connection Issue</h2>
-                    <p class="waiting-subtitle">${escapeHtml(message)}</p>
-                    <button onclick="location.reload()" style="padding: 12px 24px; background: #1DB954; color: black; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 20px;">Retry</button>
-                </div>
-            `;
-            updateStatus('Error');
-        }
-        
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-        
-        // Add periodic visual refresh for live feel
-        function startLiveAnimation() {
-            setInterval(() => {
-                if (isContentLoaded) {
-                    const tiles = document.querySelectorAll('.tile-value');
-                    tiles.forEach((tile, index) => {
-                        setTimeout(() => {
-                            tile.style.transform = 'scale(1.02)';
-                            tile.style.textShadow = '0 0 25px rgba(29, 185, 84, 0.6)';
-                            setTimeout(() => {
-                                tile.style.transform = 'scale(1)';
-                                tile.style.textShadow = '0 0 15px rgba(29, 185, 84, 0.3)';
-                            }, 200);
-                        }, index * 50);
-                    });
-                }
-            }, 30000); // Every 30 seconds
-        }
-        
-        // Initialize everything when the page loads
+
+        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM loaded, initializing cast receiver...');
-            initializeCastReceiver();
-            startLiveAnimation();
+            console.log('DOM loaded, initializing cast display...');
+            updateStatus('Loading...');
+            loadDashboardData();
         });
-        
-        // Add visibility change handler
+
+        // Handle page visibility changes
         document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && !isContentLoaded) {
-                console.log('Page visible again, retrying data fetch...');
-                initializeCastReceiver();
+            if (!document.hidden && !dashboardLoaded) {
+                console.log('Page visible, retrying data load...');
+                loadDashboardData();
             }
         });
-        
-        // Add error handling for uncaught errors
-        window.addEventListener('error', (event) => {
-            console.error('Uncaught error in cast display:', event.error);
-        });
-        
+
         console.log('TACCTILE Cast Display - Ready');
     </script>
 </body>
