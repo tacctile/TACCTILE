@@ -11,49 +11,54 @@
             box-sizing: border-box;
         }
         
-        body {
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
             background: linear-gradient(135deg, #000000 0%, #121212 100%);
             color: #ffffff;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            overflow: hidden;
-            height: 100vh;
+        }
+        
+        body {
             display: flex;
             flex-direction: column;
         }
         
         .cast-header {
-            padding: 20px 40px;
-            background: rgba(29, 185, 84, 0.1);
-            border-bottom: 2px solid rgba(29, 185, 84, 0.3);
+            padding: 12px 20px;
+            background: rgba(29, 185, 84, 0.08);
+            border-bottom: 1px solid rgba(29, 185, 84, 0.2);
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-shrink: 0;
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+            min-height: 60px;
+            box-shadow: 0 1px 10px rgba(0, 0, 0, 0.2);
         }
         
         .logo {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 15px;
         }
         
         .logo-icon {
-            width: 60px;
-            height: 60px;
+            width: 36px;
+            height: 36px;
             background: linear-gradient(135deg, #1DB954, #1ed760);
-            border-radius: 16px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
             color: #000;
-            font-size: 24px;
-            box-shadow: 0 4px 15px rgba(29, 185, 84, 0.3);
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(29, 185, 84, 0.3);
         }
         
         .logo-text {
-            font-size: 32px;
+            font-size: 20px;
             font-weight: 700;
             background: linear-gradient(135deg, #ffffff, #1ed760);
             -webkit-background-clip: text;
@@ -64,22 +69,22 @@
         .cast-status {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px 20px;
-            background: rgba(29, 185, 84, 0.15);
-            border: 1px solid rgba(29, 185, 84, 0.3);
-            border-radius: 25px;
-            font-size: 16px;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(29, 185, 84, 0.12);
+            border: 1px solid rgba(29, 185, 84, 0.25);
+            border-radius: 20px;
+            font-size: 14px;
             font-weight: 600;
         }
         
         .status-dot {
-            width: 12px;
-            height: 12px;
+            width: 8px;
+            height: 8px;
             background: #1DB954;
             border-radius: 50%;
             animation: pulse 2s infinite;
-            box-shadow: 0 0 10px rgba(29, 185, 84, 0.6);
+            box-shadow: 0 0 6px rgba(29, 185, 84, 0.6);
         }
         
         @keyframes pulse {
@@ -89,11 +94,12 @@
         
         .cast-content {
             flex: 1;
-            padding: 40px;
-            overflow-y: auto;
+            padding: 15px;
+            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
+            min-height: 0; /* Important for flex child to shrink */
         }
         
         .waiting-state {
@@ -102,16 +108,16 @@
         }
         
         .cast-icon {
-            width: 150px;
-            height: 150px;
+            width: 100px;
+            height: 100px;
             background: rgba(29, 185, 84, 0.1);
-            border: 3px solid rgba(29, 185, 84, 0.3);
+            border: 2px solid rgba(29, 185, 84, 0.3);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 40px;
-            font-size: 60px;
+            margin: 0 auto 30px;
+            font-size: 40px;
             animation: breathe 3s ease-in-out infinite;
         }
         
@@ -121,9 +127,9 @@
         }
         
         .waiting-title {
-            font-size: 48px;
+            font-size: 36px;
             font-weight: 700;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             background: linear-gradient(135deg, #1DB954, #ffffff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -131,22 +137,22 @@
         }
         
         .waiting-subtitle {
-            font-size: 20px;
+            font-size: 16px;
             color: #b3b3b3;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             line-height: 1.5;
         }
         
         .loading-indicators {
             display: flex;
             justify-content: center;
-            gap: 8px;
-            margin-top: 30px;
+            gap: 6px;
+            margin-top: 20px;
         }
         
         .loading-dot {
-            width: 12px;
-            height: 12px;
+            width: 8px;
+            height: 8px;
             background: #1DB954;
             border-radius: 50%;
             animation: wave 1.4s ease-in-out infinite both;
@@ -171,39 +177,69 @@
             width: 100%;
             height: 100%;
             display: grid;
-            gap: 30px;
-            padding: 20px;
-            overflow-y: auto;
+            gap: 15px;
+            padding: 0;
+            overflow: hidden;
             animation: fadeIn 1s ease-out;
         }
         
-        /* Responsive grid layouts */
-        @media (min-width: 1600px) {
-            .dashboard-grid { grid-template-columns: repeat(4, 1fr); }
+        /* Maximize grid usage - responsive layouts that fill the screen */
+        @media (min-width: 1920px) and (min-height: 1080px) {
+            /* 4K and large displays */
+            .dashboard-grid { 
+                grid-template-columns: repeat(5, 1fr);
+                grid-template-rows: repeat(3, 1fr);
+            }
+        }
+        @media (min-width: 1600px) and (max-width: 1919px) {
+            /* Large desktop displays */
+            .dashboard-grid { 
+                grid-template-columns: repeat(4, 1fr);
+                grid-template-rows: repeat(3, 1fr);
+            }
         }
         @media (min-width: 1200px) and (max-width: 1599px) {
-            .dashboard-grid { grid-template-columns: repeat(3, 1fr); }
+            /* Standard desktop/TV displays */
+            .dashboard-grid { 
+                grid-template-columns: repeat(4, 1fr);
+                grid-template-rows: repeat(2, 1fr);
+            }
         }
         @media (min-width: 800px) and (max-width: 1199px) {
-            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+            /* Smaller displays */
+            .dashboard-grid { 
+                grid-template-columns: repeat(3, 1fr);
+                grid-template-rows: repeat(2, 1fr);
+            }
         }
         @media (max-width: 799px) {
-            .dashboard-grid { grid-template-columns: 1fr; }
+            /* Mobile/tablet displays */
+            .dashboard-grid { 
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(3, 1fr);
+            }
+        }
+        
+        /* Tall displays */
+        @media (min-height: 1200px) {
+            .dashboard-grid { 
+                grid-template-rows: repeat(4, 1fr) !important;
+            }
         }
         
         .tile {
-            background: linear-gradient(135deg, rgba(29, 185, 84, 0.05), rgba(40, 40, 40, 0.95));
-            border: 2px solid rgba(29, 185, 84, 0.2);
-            border-radius: 20px;
-            padding: 30px;
+            background: linear-gradient(135deg, rgba(29, 185, 84, 0.06), rgba(40, 40, 40, 0.95));
+            border: 1px solid rgba(29, 185, 84, 0.15);
+            border-radius: 12px;
+            padding: 20px;
             position: relative;
             overflow: hidden;
-            min-height: 220px;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
             transition: all 0.3s ease;
             animation: slideUp 0.8s ease-out forwards;
+            min-height: 0; /* Allow tiles to shrink */
         }
         
         .tile::before {
@@ -212,33 +248,39 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
+            height: 2px;
             background: linear-gradient(90deg, #1DB954, #1ed760);
-            border-radius: 20px 20px 0 0;
+            border-radius: 12px 12px 0 0;
         }
         
         .tile:hover {
-            transform: translateY(-8px) scale(1.02);
-            border-color: rgba(29, 185, 84, 0.4);
-            box-shadow: 0 15px 50px rgba(29, 185, 84, 0.2);
+            transform: scale(1.02);
+            border-color: rgba(29, 185, 84, 0.3);
+            box-shadow: 0 8px 30px rgba(29, 185, 84, 0.15);
         }
         
         .tile-header {
-            margin-bottom: 25px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
         }
         
         .tile-title {
-            font-size: 24px;
+            font-size: 18px;
             font-weight: 700;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             color: #ffffff;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
+            line-height: 1.2;
         }
         
         .tile-description {
-            font-size: 14px;
+            font-size: 12px;
             color: #b3b3b3;
-            line-height: 1.4;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
         
         .tile-content {
@@ -247,70 +289,73 @@
             flex-direction: column;
             justify-content: center;
             text-align: center;
+            min-height: 0;
         }
         
         .tile-value {
-            font-size: 42px;
+            font-size: clamp(24px, 4vw, 36px);
             font-weight: 800;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             color: #1DB954;
-            text-shadow: 0 0 20px rgba(29, 185, 84, 0.4);
-            letter-spacing: -1px;
+            text-shadow: 0 0 15px rgba(29, 185, 84, 0.4);
+            letter-spacing: -0.5px;
+            line-height: 1.1;
         }
         
         .tile-change {
-            font-size: 16px;
+            font-size: 13px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 6px;
             font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 20px;
+            padding: 6px 12px;
+            border-radius: 15px;
             margin: 0 auto;
             max-width: fit-content;
         }
         
         .change-positive {
             color: #1DB954;
-            background: rgba(29, 185, 84, 0.1);
-            border: 1px solid rgba(29, 185, 84, 0.3);
+            background: rgba(29, 185, 84, 0.08);
+            border: 1px solid rgba(29, 185, 84, 0.2);
         }
         
         .change-negative {
             color: #ff6b6b;
-            background: rgba(255, 107, 107, 0.1);
-            border: 1px solid rgba(255, 107, 107, 0.3);
+            background: rgba(255, 107, 107, 0.08);
+            border: 1px solid rgba(255, 107, 107, 0.2);
         }
         
         .footer {
-            padding: 20px 40px;
+            padding: 10px 20px;
             text-align: center;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(0, 0, 0, 0.4);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(0, 0, 0, 0.3);
             flex-shrink: 0;
+            min-height: 40px;
         }
         
         .footer-content {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 40px;
+            gap: 25px;
             flex-wrap: wrap;
-            font-size: 14px;
+            font-size: 12px;
             color: #b3b3b3;
         }
         
         .footer-item {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             font-weight: 500;
         }
         
         .live-indicator {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             background: #ff4757;
             border-radius: 50%;
             animation: livePulse 1.5s infinite;
@@ -329,7 +374,7 @@
         @keyframes slideUp {
             from { 
                 opacity: 0; 
-                transform: translateY(40px) scale(0.95); 
+                transform: translateY(20px) scale(0.98); 
             }
             to { 
                 opacity: 1; 
@@ -340,31 +385,42 @@
         .error-state {
             text-align: center;
             color: #ff6b6b;
-            padding: 40px;
+            padding: 30px;
         }
         
         .error-icon {
-            font-size: 60px;
-            margin-bottom: 20px;
+            font-size: 40px;
+            margin-bottom: 15px;
         }
         
         .retry-button {
-            padding: 15px 30px;
+            padding: 12px 24px;
             background: linear-gradient(135deg, #1DB954, #1ed760);
             color: #000;
             border: none;
-            border-radius: 30px;
+            border-radius: 25px;
             font-weight: 700;
-            font-size: 16px;
+            font-size: 14px;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: 15px;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(29, 185, 84, 0.3);
+            box-shadow: 0 3px 12px rgba(29, 185, 84, 0.3);
         }
         
         .retry-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(29, 185, 84, 0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 5px 20px rgba(29, 185, 84, 0.4);
+        }
+        
+        /* Force full screen utilization */
+        .full-screen-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         
         /* Accessibility improvements */
@@ -375,45 +431,57 @@
                 transition-duration: 0.01ms !important;
             }
         }
+        
+        /* High DPI display optimizations */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .tile-title {
+                font-size: 19px;
+            }
+            .tile-value {
+                font-size: clamp(26px, 4.2vw, 38px);
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="cast-header">
-        <div class="logo">
-            <div class="logo-icon">T</div>
-            <div class="logo-text">TACCTILE</div>
-        </div>
-        <div class="cast-status">
-            <div class="status-dot"></div>
-            <span id="status-text">Ready</span>
-        </div>
-    </div>
-    
-    <div class="cast-content" id="content">
-        <div class="waiting-state">
-            <div class="cast-icon">📺</div>
-            <h1 class="waiting-title">Cast Display Ready</h1>
-            <p class="waiting-subtitle">Loading your dashboard content...</p>
-            <div class="loading-indicators">
-                <div class="loading-dot"></div>
-                <div class="loading-dot"></div>
-                <div class="loading-dot"></div>
+    <div class="full-screen-container">
+        <div class="cast-header">
+            <div class="logo">
+                <div class="logo-icon">T</div>
+                <div class="logo-text">TACCTILE</div>
+            </div>
+            <div class="cast-status">
+                <div class="status-dot"></div>
+                <span id="status-text">Ready</span>
             </div>
         </div>
-    </div>
-    
-    <div class="footer">
-        <div class="footer-content">
-            <div class="footer-item">
-                <div class="live-indicator"></div>
-                <span>Live Dashboard</span>
+        
+        <div class="cast-content" id="content">
+            <div class="waiting-state">
+                <div class="cast-icon">📺</div>
+                <h1 class="waiting-title">Cast Display Ready</h1>
+                <p class="waiting-subtitle">Loading your dashboard content...</p>
+                <div class="loading-indicators">
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                </div>
             </div>
-            <div class="footer-item">
-                <span>📱</span>
-                <span>Cast from TACCTILE</span>
-            </div>
-            <div class="footer-item">
-                <span id="tile-count">⚡ Ready</span>
+        </div>
+        
+        <div class="footer">
+            <div class="footer-content">
+                <div class="footer-item">
+                    <div class="live-indicator"></div>
+                    <span>Live Dashboard</span>
+                </div>
+                <div class="footer-item">
+                    <span>📱</span>
+                    <span>Cast from TACCTILE</span>
+                </div>
+                <div class="footer-item">
+                    <span id="tile-count">⚡ Ready</span>
+                </div>
             </div>
         </div>
     </div>
@@ -445,8 +513,8 @@
             document.getElementById('content').innerHTML = `
                 <div class="error-state">
                     <div class="error-icon">⚠️</div>
-                    <h2 style="font-size: 32px; margin-bottom: 16px;">Connection Error</h2>
-                    <p style="font-size: 18px; margin-bottom: 30px; line-height: 1.5;">${escapeHtml(message)}</p>
+                    <h2 style="font-size: 28px; margin-bottom: 12px;">Connection Error</h2>
+                    <p style="font-size: 16px; margin-bottom: 25px; line-height: 1.5;">${escapeHtml(message)}</p>
                     <button class="retry-button" onclick="window.location.reload()">
                         🔄 Retry
                     </button>
@@ -530,7 +598,7 @@
             content.innerHTML = `
                 <div class="dashboard-grid">
                     ${tiles.map((tile, index) => `
-                        <div class="tile" style="animation-delay: ${index * 0.1}s">
+                        <div class="tile" style="animation-delay: ${index * 0.05}s">
                             <div class="tile-header">
                                 <div class="tile-title">${escapeHtml(tile.title || 'Untitled')}</div>
                                 <div class="tile-description">${escapeHtml(tile.description || '')}</div>
@@ -549,7 +617,7 @@
                 </div>
             `;
 
-            console.log('Dashboard displayed successfully');
+            console.log('Dashboard displayed successfully - maximized for full screen');
         }
 
         function showDemoData() {
@@ -557,31 +625,45 @@
                 tiles: [
                     {
                         title: "Total Revenue",
-                        description: "Monthly revenue tracking",
+                        description: "Monthly revenue tracking with detailed analytics",
                         value: "$89,203",
                         change: 12.4,
                         changeType: "increase"
                     },
                     {
                         title: "Active Users", 
-                        description: "Current active user count",
+                        description: "Current active user count across all platforms",
                         value: "24,891",
                         change: 8.7,
                         changeType: "increase"
                     },
                     {
                         title: "API Calls",
-                        description: "Total requests processed",
+                        description: "Total requests processed this month",
                         value: "2.4M",
                         change: 15.2,
                         changeType: "increase"
                     },
                     {
                         title: "Response Time",
-                        description: "Average response time",
+                        description: "Average API response time",
                         value: "142ms",
                         change: -8.3,
                         changeType: "decrease"
+                    },
+                    {
+                        title: "Conversion Rate",
+                        description: "User conversion metrics",
+                        value: "3.24%",
+                        change: 5.1,
+                        changeType: "increase"
+                    },
+                    {
+                        title: "Server Uptime",
+                        description: "System availability this month",
+                        value: "99.9%",
+                        change: 0.1,
+                        changeType: "increase"
                     }
                 ]
             };
@@ -596,9 +678,31 @@
             return div.innerHTML;
         }
 
+        // Force full screen on load
+        function maximizeDisplay() {
+            // Request fullscreen if available
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Fullscreen request failed:', err);
+                });
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                document.documentElement.webkitRequestFullscreen();
+            } else if (document.documentElement.msRequestFullscreen) {
+                document.documentElement.msRequestFullscreen();
+            }
+            
+            // Ensure body uses full viewport
+            document.body.style.width = '100vw';
+            document.body.style.height = '100vh';
+            document.body.style.margin = '0';
+            document.body.style.padding = '0';
+            document.body.style.overflow = 'hidden';
+        }
+
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM loaded, initializing cast display...');
+            console.log('DOM loaded, maximizing display and loading dashboard...');
+            maximizeDisplay();
             updateStatus('Loading...');
             loadDashboardData();
         });
@@ -611,7 +715,14 @@
             }
         });
 
-        console.log('TACCTILE Cast Display - Ready');
+        // Handle resize to maintain full screen
+        window.addEventListener('resize', () => {
+            console.log('Window resized, ensuring full screen utilization');
+            document.body.style.width = '100vw';
+            document.body.style.height = '100vh';
+        });
+
+        console.log('TACCTILE Cast Display - Ready for maximum screen utilization');
     </script>
 </body>
 </html>

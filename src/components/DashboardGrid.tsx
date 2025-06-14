@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, Cast, RotateCcw, Tv } from 'lucide-react';
+import { Loader2, Cast, RotateCcw, Tv, Crown, Lock } from 'lucide-react';
 import DashboardTile from './DashboardTile';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import WarningModal from './WarningModal';
 import GhostTile from './GhostTile';
 import TileSelectionModal from './TileSelectionModal';
 import CastingModal from './CastingModal';
+import UpgradeModal from './UpgradeModal';
+import FeatureLockIndicator from './FeatureLockIndicator';
 import { TileData } from '../types/dashboard';
 import { useLayoutPersistence } from '../hooks/useLayoutPersistence';
+import { useSubscription } from '../contexts/SubscriptionContext';
 import { getDefaultTilesForView } from '../data/mockData';
 
 interface DashboardGridProps {
@@ -31,6 +34,8 @@ interface TileTemplate {
 
 const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed }) => {
   const { saveLayout, loadLayout, resetLayout, resetAllCastTiles, isLoading } = useLayoutPersistence();
+  const { subscription, canUseFeature, isFeatureLocked } = useSubscription();
+  
   const [tiles, setTiles] = useState<TileData[]>([]);
   const [tileToDelete, setTileToDelete] = useState<string | null>(null);
   const [deletingTile, setDeletingTile] = useState<string | null>(null);
@@ -53,11 +58,25 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
 
   // Casting states
   const [showCastingModal, setShowCastingModal] = useState(false);
+  
+  // Subscription states
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [lockedFeature, setLockedFeature] = useState<string>('');
 
   // Check if tile is in the bottom 4 tiles (last 4 in the array)
   const isTileNonDraggable = useCallback((index: number, totalTiles: number) => {
     return index >= totalTiles - 4;
   }, []);
+
+  // Check subscription limits
+  const checkTileLimit = useCallback(() => {
+    const maxTiles = subscription.features.maxTiles;
+    return tiles.length >= maxTiles;
+  }, [tiles.length, subscription.features.maxTiles]);
+
+  const canAddMoreTiles = useCallback(() => {
+    return !checkTileLimit();
+  }, [checkTileLimit]);
 
   // Load saved layout or use defaults
   useEffect(() => {
@@ -77,12 +96,14 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
       const safeCastTileData = saved.castTileData || {};
       tilesToShow = safeCastTiles.map(tileId => safeCastTileData[tileId]).filter(Boolean);
     } else {
-      // For other views, show default tiles
-      tilesToShow = getDefaultTilesForView(view);
+      // For other views, show default tiles (respecting subscription limits)
+      const defaultTiles = getDefaultTilesForView(view);
+      const maxTiles = subscription.features.maxTiles;
+      tilesToShow = defaultTiles.slice(0, maxTiles);
     }
     
     setTiles(tilesToShow);
-  }, [view, loadLayout, isLoading]);
+  }, [view, loadLayout, isLoading, subscription.features.maxTiles]);
 
   // Enhanced drag and drop handlers with Android-style behavior
   const handleDragStart = useCallback((e: React.DragEvent, tileId: string) => {
@@ -302,23 +323,35 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
       // For other views, reset layout
       resetLayout(view);
       const defaultTiles = getDefaultTilesForView(view);
-      setTiles(defaultTiles);
+      const maxTiles = subscription.features.maxTiles;
+      setTiles(defaultTiles.slice(0, maxTiles));
     }
     
     setIsResetting(false);
     setShowClearAllWarning(false);
-  }, [view, resetLayout, resetAllCastTiles]);
+  }, [view, resetLayout, resetAllCastTiles, subscription.features.maxTiles]);
 
   const cancelClearAll = useCallback(() => {
     setShowClearAllWarning(false);
   }, []);
 
-  // Handle adding new tiles
+  // Handle adding new tiles (with subscription check)
   const handleAddTile = useCallback(() => {
+    if (!canAddMoreTiles()) {
+      setLockedFeature('Unlimited Tiles');
+      setShowUpgradeModal(true);
+      return;
+    }
     setShowTileSelection(true);
-  }, []);
+  }, [canAddMoreTiles]);
 
   const handleSelectTile = useCallback((template: TileTemplate) => {
+    if (!canAddMoreTiles()) {
+      setLockedFeature('Unlimited Tiles');
+      setShowUpgradeModal(true);
+      return;
+    }
+
     const newTile: TileData = {
       id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       title: template.title,
@@ -348,12 +381,17 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
     } else {
       saveLayout(view, [], newTiles, undefined, Array.from(castTiles), castTileData);
     }
-  }, [tiles, view, castTiles, castTileData, saveLayout]);
+  }, [tiles, view, castTiles, castTileData, saveLayout, canAddMoreTiles]);
 
-  // Handle casting
+  // Handle casting with subscription check
   const handleCastNow = useCallback(() => {
+    if (isFeatureLocked('canCastChromecast')) {
+      setLockedFeature('Premium Casting');
+      setShowUpgradeModal(true);
+      return;
+    }
     setShowCastingModal(true);
-  }, []);
+  }, [isFeatureLocked]);
 
   if (isLoading) {
     return (
@@ -401,24 +439,65 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-spotify-white mb-2 font-spotify">
               {view === 'ai-tools' ? 'Stacc Cast' : 'Your Dashboard'}
             </h2>
-            <p className="text-spotify-text-gray font-spotify text-sm sm:text-base">
-              {view === 'ai-tools' 
-                ? `${castTiles.size} tiles - Bottom 4 tiles locked`
-                : '2 tiles wide on mobile - Bottom 4 tiles locked'
-              }
-            </p>
+            <div className="flex items-center space-x-4">
+              <p className="text-spotify-text-gray font-spotify text-sm sm:text-base">
+                {view === 'ai-tools' 
+                  ? `${castTiles.size} tiles - Bottom 4 tiles locked`
+                  : '2 tiles wide on mobile - Bottom 4 tiles locked'
+                }
+              </p>
+              
+              {/* Subscription Indicator */}
+              <div className="flex items-center space-x-2">
+                {subscription.tier === 'free' && (
+                  <div className="flex items-center space-x-1 px-2 py-1 bg-orange-500/20 rounded-full">
+                    <Lock className="w-3 h-3 text-orange-400" />
+                    <span className="text-xs text-orange-400 font-spotify">
+                      {tiles.length}/{subscription.features.maxTiles} tiles
+                    </span>
+                  </div>
+                )}
+                {subscription.tier === 'pro' && (
+                  <div className="flex items-center space-x-1 px-2 py-1 bg-spotify-green/20 rounded-full">
+                    <Crown className="w-3 h-3 text-spotify-green" />
+                    <span className="text-xs text-spotify-green font-spotify">Pro</span>
+                  </div>
+                )}
+                {subscription.tier === 'enterprise' && (
+                  <div className="flex items-center space-x-1 px-2 py-1 bg-purple-500/20 rounded-full">
+                    <Crown className="w-3 h-3 text-purple-400" />
+                    <span className="text-xs text-purple-400 font-spotify">Enterprise</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           
           <div className="flex items-center space-x-2 sm:space-x-3">
             {/* Cast Now Button - Only show on Stacc Cast page */}
             {view === 'ai-tools' && castTiles.size > 0 && (
-              <button
-                onClick={handleCastNow}
-                className="flex items-center space-x-2 px-4 sm:px-6 py-3 bg-spotify-green hover:bg-spotify-green-dark text-spotify-black font-bold rounded-full transition-all shadow-lg shadow-spotify-green/20 hover:shadow-xl hover:shadow-spotify-green/30 hover:scale-105 font-spotify text-sm sm:text-base"
-              >
-                <Tv className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>Cast Now</span>
-              </button>
+              <div className="relative">
+                <button
+                  onClick={handleCastNow}
+                  className={`flex items-center space-x-2 px-4 sm:px-6 py-3 rounded-full transition-all shadow-lg font-spotify text-sm sm:text-base ${
+                    isFeatureLocked('canCastChromecast')
+                      ? 'bg-orange-500/20 border border-orange-500/40 text-orange-400 hover:bg-orange-500/30'
+                      : 'bg-spotify-green hover:bg-spotify-green-dark text-spotify-black shadow-spotify-green/20 hover:shadow-xl hover:shadow-spotify-green/30 hover:scale-105'
+                  }`}
+                >
+                  {isFeatureLocked('canCastChromecast') && <Lock className="w-4 h-4 sm:w-5 sm:h-5" />}
+                  <Tv className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>{isFeatureLocked('canCastChromecast') ? 'Cast (Pro)' : 'Cast Now'}</span>
+                </button>
+                
+                {isFeatureLocked('canCastChromecast') && (
+                  <FeatureLockIndicator
+                    feature="Full Casting"
+                    requiredTier="pro"
+                    inline
+                  />
+                )}
+              </div>
             )}
             
             <button
@@ -436,6 +515,21 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
             </button>
           </div>
         </div>
+
+        {/* Subscription Limit Warning */}
+        {checkTileLimit() && subscription.tier === 'free' && (
+          <div className="mb-6">
+            <FeatureLockIndicator
+              feature={`Tile Limit Reached (${tiles.length}/${subscription.features.maxTiles})`}
+              requiredTier="pro"
+              showUpgradeHint
+              onUpgradeClick={() => {
+                setLockedFeature('Unlimited Tiles');
+                setShowUpgradeModal(true);
+              }}
+            />
+          </div>
+        )}
 
         {/* MOBILE-OPTIMIZED GRID - 2 columns on mobile */}
         <div 
@@ -520,7 +614,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
                 Total tiles: <strong className="text-spotify-green">{tiles.length}</strong> • 
                 Cast tiles: <strong className="text-spotify-green">{castTiles.size}</strong> • 
                 Draggable: <strong className="text-spotify-green">{Math.max(0, tiles.length - 4)}</strong> • 
-                Layout: <strong className="text-spotify-green">2-Col Mobile Responsive</strong>
+                Plan: <strong className="text-spotify-green">{subscription.tier.charAt(0).toUpperCase() + subscription.tier.slice(1)}</strong>
               </p>
             </div>
           </div>
@@ -555,16 +649,26 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
         currentView={view}
       />
 
-      {/* Casting Modal */}
-      <CastingModal
-        isOpen={showCastingModal}
-        onClose={() => setShowCastingModal(false)}
-        dashboardContent={{
-          tiles: tiles,
-          castTiles: Array.from(castTiles),
-          view: view,
-          timestamp: new Date().toISOString()
-        }}
+      {/* Casting Modal - Only show if not locked */}
+      {canUseFeature('canCastChromecast') && (
+        <CastingModal
+          isOpen={showCastingModal}
+          onClose={() => setShowCastingModal(false)}
+          dashboardContent={{
+            tiles: tiles,
+            castTiles: Array.from(castTiles),
+            view: view,
+            timestamp: new Date().toISOString()
+          }}
+        />
+      )}
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        lockedFeature={lockedFeature}
+        featureDescription={lockedFeature === 'Premium Casting' ? 'Cast to Chromecast and wireless displays' : undefined}
       />
     </div>
   );

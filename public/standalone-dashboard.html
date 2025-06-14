@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Dashboard with Cast</title>
+    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .header {
+            padding: 20px;
+            text-align: center;
+            background: rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .cast-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .cast-btn {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            min-width: 120px;
+            justify-content: center;
+        }
+
+        .cast-btn:hover {
+            background: #3367d6;
+            transform: translateY(-2px);
+        }
+
+        .cast-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .cast-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .widget {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .widget:hover {
+            transform: translateY(-5px);
+        }
+
+        .widget h3 {
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            color: #fff;
+        }
+
+        .metric {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #4fc3f7;
+            margin: 10px 0;
+        }
+
+        .chart {
+            width: 100%;
+            height: 200px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 15px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4fc3f7, #29b6f6);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .status {
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .status.connected {
+            background: rgba(76, 175, 80, 0.3);
+            border-left: 4px solid #4caf50;
+        }
+
+        .status.disconnected {
+            background: rgba(244, 67, 54, 0.3);
+            border-left: 4px solid #f44336;
+        }
+
+        .new-window-btn {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .new-window-btn:hover {
+            background: #e55a2b;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                padding: 10px;
+            }
+            
+            .cast-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Interactive Dashboard</h1>
+        <div class="cast-controls">
+            <button id="castBtn" class="cast-btn" disabled>
+                <svg class="cast-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M1,18V21H4C4,19.89 3.11,19 2,19C1.45,19 1,18.55 1,18M1,14V16C5.97,16 10,20.03 10,25H12C12,18.92 7.07,14 1,14M1,10V12C8.19,12 14,17.81 14,25H16C16,16.72 9.28,10 1,10M21,3H3C1.9,3 1,3.9 1,5V8H3V5H21V19H14V21H21C22.1,21 23,20.1 23,19V5C23,3.9 22.1,3 21,3Z"/>
+                </svg>
+                Cast Dashboard
+            </button>
+            <button id="stopCastBtn" class="cast-btn" disabled>
+                <svg class="cast-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19,7H22V9H19V7M19,11H22V13H19V11M19,15H22V17H19V15M16,4A1,1 0 0,1 17,5V19A1,1 0 0,1 16,20H2A1,1 0 0,1 1,19V5A1,1 0 0,1 2,4H16M15,6H3V18H15V6Z"/>
+                </svg>
+                Stop Casting
+            </button>
+            <button id="newWindowBtn" class="new-window-btn">
+                📺 Open in New Window
+            </button>
+        </div>
+        <div id="castStatus" class="status disconnected">
+            Cast Status: Not Connected
+        </div>
+    </div>
+
+    <div class="dashboard">
+        <div class="widget">
+            <h3>Revenue</h3>
+            <div class="metric" id="revenue">$127,420</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 75%"></div>
+            </div>
+            <p>+12% from last month</p>
+        </div>
+
+        <div class="widget">
+            <h3>Active Users</h3>
+            <div class="metric" id="users">8,549</div>
+            <div class="chart">
+                <svg width="100%" height="100%" viewBox="0 0 300 150">
+                    <polyline fill="none" stroke="#4fc3f7" stroke-width="3" 
+                              points="0,120 50,100 100,80 150,60 200,70 250,40 300,50"/>
+                    <circle cx="300" cy="50" r="4" fill="#4fc3f7"/>
+                </svg>
+            </div>
+        </div>
+
+        <div class="widget">
+            <h3>Conversion Rate</h3>
+            <div class="metric" id="conversion">3.24%</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 65%"></div>
+            </div>
+            <p>Target: 5.0%</p>
+        </div>
+
+        <div class="widget">
+            <h3>Sales Today</h3>
+            <div class="metric" id="sales">$23,891</div>
+            <div class="chart">
+                <svg width="100%" height="100%" viewBox="0 0 300 150">
+                    <rect x="20" y="100" width="30" height="40" fill="#4fc3f7"/>
+                    <rect x="70" y="80" width="30" height="60" fill="#4fc3f7"/>
+                    <rect x="120" y="60" width="30" height="80" fill="#4fc3f7"/>
+                    <rect x="170" y="90" width="30" height="50" fill="#4fc3f7"/>
+                    <rect x="220" y="40" width="30" height="100" fill="#4fc3f7"/>
+                </svg>
+            </div>
+        </div>
+
+        <div class="widget">
+            <h3>Server Status</h3>
+            <div class="metric" style="color: #4caf50;">Online</div>
+            <p>Uptime: 99.9%</p>
+            <p>Response time: 120ms</p>
+            <p>Active connections: 1,247</p>
+        </div>
+
+        <div class="widget">
+            <h3>Recent Activity</h3>
+            <div style="font-size: 0.9em; line-height: 1.6;">
+                <p>• New user registration: John Doe</p>
+                <p>• Payment received: $299.00</p>
+                <p>• System backup completed</p>
+                <p>• 5 new support tickets</p>
+                <p>• Database optimization finished</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class CastManager {
+            constructor() {
+                this.castContext = null;
+                this.currentSession = null;
+                this.applicationID = 'CC1AD845'; // Default media receiver - replace with your custom app ID
+                this.isInitialized = false;
+                
+                this.init();
+            }
+
+            init() {
+                window.__onGCastApiAvailable = (isAvailable) => {
+                    if (isAvailable) {
+                        this.initializeCast();
+                    }
+                };
+            }
+
+            initializeCast() {
+                this.castContext = cast.framework.CastContext.getInstance();
+                
+                this.castContext.setOptions({
+                    receiverApplicationId: this.applicationID,
+                    autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+                });
+
+                // Listen for session state changes
+                this.castContext.addEventListener(
+                    cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
+                    (event) => this.onSessionStateChanged(event)
+                );
+
+                this.isInitialized = true;
+                this.updateUI();
+            }
+
+            onSessionStateChanged(event) {
+                switch (event.sessionState) {
+                    case cast.framework.SessionState.SESSION_STARTED:
+                        this.currentSession = this.castContext.getCurrentSession();
+                        this.onSessionStarted();
+                        break;
+                    case cast.framework.SessionState.SESSION_ENDED:
+                        this.currentSession = null;
+                        this.onSessionEnded();
+                        break;
+                }
+            }
+
+            onSessionStarted() {
+                console.log('Cast session started');
+                this.updateStatus('Connected to ' + this.currentSession.getCastDevice().friendlyName, true);
+                this.updateUI();
+                
+                // Send dashboard data to receiver
+                this.sendDashboardData();
+            }
+
+            onSessionEnded() {
+                console.log('Cast session ended');
+                this.updateStatus('Not Connected', false);
+                this.updateUI();
+            }
+
+            startCasting() {
+                if (!this.isInitialized) {
+                    this.updateStatus('Cast not initialized', false);
+                    return;
+                }
+
+                this.castContext.requestSession().then(
+                    () => {
+                        console.log('Cast session request successful');
+                    },
+                    (error) => {
+                        console.error('Error starting cast session:', error);
+                        this.updateStatus('Failed to connect: ' + error.description, false);
+                    }
+                );
+            }
+
+            stopCasting() {
+                if (this.currentSession) {
+                    this.currentSession.endSession(true);
+                }
+            }
+
+            sendDashboardData() {
+                if (!this.currentSession) return;
+
+                const dashboardData = {
+                    type: 'DASHBOARD_DATA',
+                    data: {
+                        revenue: document.getElementById('revenue').textContent,
+                        users: document.getElementById('users').textContent,
+                        conversion: document.getElementById('conversion').textContent,
+                        sales: document.getElementById('sales').textContent,
+                        timestamp: new Date().toISOString()
+                    }
+                };
+
+                this.currentSession.sendMessage(
+                    'urn:x-cast:com.dashboard.channel',
+                    dashboardData
+                ).catch(error => {
+                    console.error('Error sending message:', error);
+                });
+            }
+
+            updateUI() {
+                const castBtn = document.getElementById('castBtn');
+                const stopCastBtn = document.getElementById('stopCastBtn');
+                
+                if (this.isInitialized) {
+                    castBtn.disabled = false;
+                    
+                    if (this.currentSession) {
+                        castBtn.disabled = true;
+                        stopCastBtn.disabled = false;
+                    } else {
+                        castBtn.disabled = false;
+                        stopCastBtn.disabled = true;
+                    }
+                }
+            }
+
+            updateStatus(message, isConnected) {
+                const statusElement = document.getElementById('castStatus');
+                statusElement.textContent = 'Cast Status: ' + message;
+                statusElement.className = isConnected ? 'status connected' : 'status disconnected';
+            }
+
+            openNewWindow() {
+                const displayUrl = window.location.origin + '/cast-display.html';
+                const newWindow = window.open(displayUrl, 'CastDisplay', 
+                    'width=1920,height=1080,fullscreen=yes,menubar=no,toolbar=no,status=no');
+                
+                if (newWindow) {
+                    this.updateStatus('Opened in new window', true);
+                    
+                    // Send data to the new window
+                    setTimeout(() => {
+                        newWindow.postMessage({
+                            type: 'DASHBOARD_DATA',
+                            data: {
+                                revenue: document.getElementById('revenue').textContent,
+                                users: document.getElementById('users').textContent,
+                                conversion: document.getElementById('conversion').textContent,
+                                sales: document.getElementById('sales').textContent
+                            }
+                        }, '*');
+                    }, 1000);
+                } else {
+                    this.updateStatus('Failed to open new window (popup blocked?)', false);
+                }
+            }
+        }
+
+        // Initialize cast manager
+        const castManager = new CastManager();
+
+        // Event listeners
+        document.getElementById('castBtn').addEventListener('click', () => {
+            castManager.startCasting();
+        });
+
+        document.getElementById('stopCastBtn').addEventListener('click', () => {
+            castManager.stopCasting();
+        });
+
+        document.getElementById('newWindowBtn').addEventListener('click', () => {
+            castManager.openNewWindow();
+        });
+
+        // Update data periodically
+        function updateDashboardData() {
+            // Simulate real-time data updates
+            const revenue = document.getElementById('revenue');
+            const users = document.getElementById('users');
+            const conversion = document.getElementById('conversion');
+            const sales = document.getElementById('sales');
+            
+            // Add some random variation
+            const revenueNum = parseInt(revenue.textContent.replace(/[$,]/g, ''));
+            const usersNum = parseInt(users.textContent.replace(/[,]/g, ''));
+            
+            revenue.textContent = '$' + (revenueNum + Math.floor(Math.random() * 1000 - 500)).toLocaleString();
+            users.textContent = (usersNum + Math.floor(Math.random() * 100 - 50)).toLocaleString();
+            conversion.textContent = (3.24 + (Math.random() * 0.5 - 0.25)).toFixed(2) + '%';
+            sales.textContent = '$' + (23891 + Math.floor(Math.random() * 2000 - 1000)).toLocaleString();
+            
+            // Send updated data to cast if connected
+            if (castManager.currentSession) {
+                castManager.sendDashboardData();
+            }
+        }
+
+        // Update every 10 seconds
+        setInterval(updateDashboardData, 10000);
+
+        // Initialize status
+        castManager.updateStatus('Initializing...', false);
+    </script>
+</body>
+</html>

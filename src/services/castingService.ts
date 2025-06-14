@@ -383,13 +383,29 @@ class CastingService {
         this.castWindow.close();
       }
 
+      // ALWAYS use sessionStorage - never pass data in URL
       // Generate unique key and store data in sessionStorage
       const dataKey = `tacctile_cast_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      sessionStorage.setItem(dataKey, JSON.stringify(dashboardContent));
+      
+      // Ensure the data is properly serialized and stored
+      try {
+        const serializedData = JSON.stringify(dashboardContent);
+        sessionStorage.setItem(dataKey, serializedData);
+        console.log('Dashboard data stored in sessionStorage with key:', dataKey);
+      } catch (serializationError) {
+        console.error('Failed to serialize dashboard data:', serializationError);
+        return 'Failed to prepare dashboard data for casting';
+      }
 
-      // Use key instead of full data in URL
+      // Always use key-based URL - never include actual data
       const windowUrl = `${window.location.origin}/cast-display.html?key=${dataKey}`;
       
+      // Verify URL length is reasonable (should be short with key approach)
+      if (windowUrl.length > 2000) {
+        console.error('Window URL still too long even with key approach:', windowUrl.length);
+        return 'Internal error: URL generation failed';
+      }
+
       // Open in new window - optimized for TV screens
       this.castWindow = window.open(
         windowUrl,
@@ -398,13 +414,15 @@ class CastingService {
       );
 
       if (!this.castWindow) {
+        // Clean up sessionStorage if window failed to open
+        sessionStorage.removeItem(dataKey);
         return 'Unable to open new window. Please allow popups and try again.';
       }
 
       // Focus the new window
       this.castWindow.focus();
 
-      console.log('Successfully opened cast window with data key:', dataKey);
+      console.log('Successfully opened cast window with sessionStorage key:', dataKey);
       return true;
 
     } catch (error) {

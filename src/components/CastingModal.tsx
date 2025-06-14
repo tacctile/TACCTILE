@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Tv, Loader2, CheckCircle, AlertCircle, Monitor, Smartphone, RefreshCw, Settings, ExternalLink, Copy } from 'lucide-react';
+import { X, Tv, Loader2, CheckCircle, AlertCircle, Monitor, Smartphone, RefreshCw, Settings, ExternalLink, Copy, Crown, Lock } from 'lucide-react';
 import { castingService, CastDevice, CastSession } from '../services/castingService';
+import { useSubscription } from '../contexts/SubscriptionContext';
+import FeatureLockIndicator from './FeatureLockIndicator';
 
 interface CastingModalProps {
   isOpen: boolean;
@@ -9,6 +11,7 @@ interface CastingModalProps {
 }
 
 const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardContent }) => {
+  const { subscription, canUseFeature, getUpgradeReason } = useSubscription();
   const [devices, setDevices] = useState<CastDevice[]>([]);
   const [currentSession, setCurrentSession] = useState<CastSession | null>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -57,6 +60,23 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
   const handleCastToDevice = async (deviceId: string) => {
     const device = devices.find(d => d.id === deviceId);
     if (!device) return;
+
+    // Check subscription permissions
+    if (device.type === 'chromecast' && !canUseFeature('canCastChromecast')) {
+      setMessage({ 
+        type: 'error', 
+        text: `🔒 Chromecast casting requires a Pro subscription. ${getUpgradeReason('canCastChromecast')}` 
+      });
+      return;
+    }
+
+    if (device.type === 'presentation' && !canUseFeature('canCastChromecast')) {
+      setMessage({ 
+        type: 'error', 
+        text: `🔒 Wireless display casting requires a Pro subscription. ${getUpgradeReason('canCastChromecast')}` 
+      });
+      return;
+    }
 
     setCastingToDevice(deviceId);
     setMessage(null);
@@ -115,6 +135,14 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
       return;
     }
 
+    if (!canUseFeature('canUseCustomReceiver')) {
+      setMessage({ 
+        type: 'error', 
+        text: '🔒 Custom Receiver apps require a Pro subscription for full functionality.' 
+      });
+      return;
+    }
+
     castingService.setCustomReceiverAppId(customAppId.trim());
     setMessage({ type: 'success', text: '✅ Custom Receiver App ID saved! Chromecast should now work.' });
     setShowSetup(false);
@@ -146,6 +174,11 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
     }
   };
 
+  const isDeviceLocked = (device: CastDevice) => {
+    if (device.type === 'window') return false; // New Window is always available
+    return !canUseFeature('canCastChromecast');
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -160,9 +193,17 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
             </div>
             <div>
               <h2 className="text-xl font-bold text-spotify-white font-spotify">Cast Your Dashboard</h2>
-              <p className="text-spotify-text-gray text-sm font-spotify">
-                {dashboardContent.tiles?.length || 0} tiles ready to cast
-              </p>
+              <div className="flex items-center space-x-3">
+                <p className="text-spotify-text-gray text-sm font-spotify">
+                  {dashboardContent.tiles?.length || 0} tiles ready to cast
+                </p>
+                {subscription.tier === 'pro' && (
+                  <div className="flex items-center space-x-1 px-2 py-1 bg-spotify-green/20 rounded-full">
+                    <Crown className="w-3 h-3 text-spotify-green" />
+                    <span className="text-xs text-spotify-green font-spotify">Pro Access</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -182,6 +223,17 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
           </div>
         </div>
 
+        {/* Subscription Limitation Warning */}
+        {subscription.tier === 'free' && (
+          <div className="p-4 border-b border-spotify-light-gray/20">
+            <FeatureLockIndicator
+              feature="Premium Casting Features"
+              requiredTier="pro"
+              showUpgradeHint={false}
+            />
+          </div>
+        )}
+
         {/* Setup Panel */}
         {showSetup && (
           <div className="p-6 border-b border-spotify-light-gray/20 bg-spotify-green/5">
@@ -189,6 +241,12 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
               <div className="flex items-center space-x-3 mb-4">
                 <Settings className="w-5 h-5 text-spotify-green" />
                 <h3 className="text-lg font-semibold text-spotify-white font-spotify">Custom Receiver Setup</h3>
+                {!canUseFeature('canUseCustomReceiver') && (
+                  <div className="flex items-center space-x-1 px-2 py-1 bg-orange-500/20 rounded-full">
+                    <Lock className="w-3 h-3 text-orange-400" />
+                    <span className="text-xs text-orange-400 font-spotify">Pro Required</span>
+                  </div>
+                )}
               </div>
               
               <div className="bg-spotify-medium-gray rounded-lg p-4 space-y-3">
@@ -226,20 +284,27 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
                     value={customAppId}
                     onChange={(e) => setCustomAppId(e.target.value)}
                     placeholder="e.g., 12345678"
-                    className="flex-1 px-3 py-2 bg-spotify-medium-gray border border-spotify-light-gray/30 rounded-lg text-spotify-white placeholder-spotify-text-gray focus:border-spotify-green focus:ring-2 focus:ring-spotify-green/20 transition-all font-spotify"
+                    disabled={!canUseFeature('canUseCustomReceiver')}
+                    className="flex-1 px-3 py-2 bg-spotify-medium-gray border border-spotify-light-gray/30 rounded-lg text-spotify-white placeholder-spotify-text-gray focus:border-spotify-green focus:ring-2 focus:ring-spotify-green/20 transition-all font-spotify disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <button
                     onClick={handleSaveCustomAppId}
-                    className="px-4 py-2 bg-spotify-green hover:bg-spotify-green-dark text-spotify-black font-medium rounded-lg transition-all font-spotify"
+                    disabled={!canUseFeature('canUseCustomReceiver')}
+                    className="px-4 py-2 bg-spotify-green hover:bg-spotify-green-dark text-spotify-black font-medium rounded-lg transition-all font-spotify disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Save
                   </button>
                 </div>
+                {!canUseFeature('canUseCustomReceiver') && (
+                  <p className="text-xs text-orange-400 font-spotify">
+                    🔒 Custom Receiver setup requires Pro subscription
+                  </p>
+                )}
               </div>
 
               <div className="text-xs text-spotify-text-gray/70 bg-spotify-dark-gray/50 rounded p-3">
                 💡 <strong>Note:</strong> The Custom Receiver enables full dashboard casting to Chromecast. 
-                The "New Window\" option works immediately without any setup!
+                The "New Window\" option works immediately without any setup and is available on all plans!
               </div>
             </div>
           </div>
@@ -308,74 +373,98 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
 
           {/* Device List */}
           <div className="space-y-3">
-            {devices.map((device) => (
-              <div
-                key={device.id}
-                className={`p-4 rounded-xl border transition-all ${
-                  device.status === 'connected'
-                    ? 'bg-spotify-green/20 border-spotify-green/40'
-                    : device.status === 'connecting'
-                    ? 'bg-orange-500/20 border-orange-500/40'
-                    : 'bg-spotify-medium-gray border-spotify-light-gray/20 hover:border-spotify-green/40 hover:bg-spotify-light-gray/50 cursor-pointer'
-                }`}
-                onClick={() => device.status === 'available' && handleCastToDevice(device.id)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      device.status === 'connected' ? 'bg-spotify-green text-spotify-black' :
-                      device.status === 'connecting' ? 'bg-orange-500 text-white' :
-                      'bg-spotify-light-gray text-spotify-text-gray'
-                    }`}>
-                      {getDeviceIcon(device)}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-sm font-semibold text-spotify-white font-spotify">
-                        {device.name}
-                      </h4>
-                      <p className="text-xs text-spotify-text-gray font-spotify">
-                        {device.description}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-3">
-                    {/* Status Indicator */}
-                    <div className="flex items-center space-x-2">
-                      {device.status === 'connecting' || castingToDevice === device.id ? (
-                        <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
-                      ) : device.status === 'connected' ? (
-                        <div className="w-2 h-2 bg-spotify-green rounded-full animate-pulse" />
-                      ) : (
-                        <div className="w-2 h-2 bg-spotify-text-gray rounded-full" />
-                      )}
-                      <span className={`text-xs font-medium font-spotify ${
-                        device.status === 'connected' ? 'text-spotify-green' :
-                        device.status === 'connecting' || castingToDevice === device.id ? 'text-orange-400' :
-                        'text-spotify-text-gray'
+            {devices.map((device) => {
+              const isLocked = isDeviceLocked(device);
+              
+              return (
+                <div
+                  key={device.id}
+                  className={`p-4 rounded-xl border transition-all ${
+                    device.status === 'connected'
+                      ? 'bg-spotify-green/20 border-spotify-green/40'
+                      : device.status === 'connecting'
+                      ? 'bg-orange-500/20 border-orange-500/40'
+                      : isLocked
+                      ? 'bg-spotify-medium-gray border-orange-500/30 opacity-75'
+                      : 'bg-spotify-medium-gray border-spotify-light-gray/20 hover:border-spotify-green/40 hover:bg-spotify-light-gray/50 cursor-pointer'
+                  }`}
+                  onClick={() => !isLocked && device.status === 'available' && handleCastToDevice(device.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        device.status === 'connected' ? 'bg-spotify-green text-spotify-black' :
+                        device.status === 'connecting' ? 'bg-orange-500 text-white' :
+                        isLocked ? 'bg-orange-500/20 text-orange-400' :
+                        'bg-spotify-light-gray text-spotify-text-gray'
                       }`}>
-                        {device.status === 'connecting' || castingToDevice === device.id ? 'Connecting...' :
-                         device.status === 'connected' ? 'Connected' : 'Available'}
-                      </span>
+                        {isLocked && device.type !== 'window' ? <Lock className="w-5 h-5" /> : getDeviceIcon(device)}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <h4 className="text-sm font-semibold text-spotify-white font-spotify">
+                            {device.name}
+                          </h4>
+                          {isLocked && device.type !== 'window' && (
+                            <div className="flex items-center space-x-1 px-2 py-1 bg-orange-500/20 rounded-full">
+                              <Crown className="w-3 h-3 text-orange-400" />
+                              <span className="text-xs text-orange-400 font-spotify">Pro</span>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs text-spotify-text-gray font-spotify">
+                          {isLocked && device.type !== 'window' 
+                            ? '🔒 Requires Pro subscription' 
+                            : device.description
+                          }
+                        </p>
+                      </div>
                     </div>
 
-                    {/* Cast Button */}
-                    {device.status === 'available' && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCastToDevice(device.id);
-                        }}
-                        disabled={castingToDevice === device.id}
-                        className="px-4 py-2 bg-spotify-green hover:bg-spotify-green-dark text-spotify-black font-medium rounded-lg transition-all disabled:opacity-50 text-xs"
-                      >
-                        {castingToDevice === device.id ? 'Casting...' : 'Cast'}
-                      </button>
-                    )}
+                    <div className="flex items-center space-x-3">
+                      {/* Status Indicator */}
+                      <div className="flex items-center space-x-2">
+                        {device.status === 'connecting' || castingToDevice === device.id ? (
+                          <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
+                        ) : device.status === 'connected' ? (
+                          <div className="w-2 h-2 bg-spotify-green rounded-full animate-pulse" />
+                        ) : (
+                          <div className="w-2 h-2 bg-spotify-text-gray rounded-full" />
+                        )}
+                        <span className={`text-xs font-medium font-spotify ${
+                          device.status === 'connected' ? 'text-spotify-green' :
+                          device.status === 'connecting' || castingToDevice === device.id ? 'text-orange-400' :
+                          'text-spotify-text-gray'
+                        }`}>
+                          {device.status === 'connecting' || castingToDevice === device.id ? 'Connecting...' :
+                           device.status === 'connected' ? 'Connected' : 
+                           isLocked && device.type !== 'window' ? 'Locked' : 'Available'}
+                        </span>
+                      </div>
+
+                      {/* Cast Button */}
+                      {device.status === 'available' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCastToDevice(device.id);
+                          }}
+                          disabled={castingToDevice === device.id || isLocked}
+                          className={`px-4 py-2 font-medium rounded-lg transition-all text-xs ${
+                            isLocked 
+                              ? 'bg-orange-500/20 text-orange-400 cursor-not-allowed' 
+                              : 'bg-spotify-green hover:bg-spotify-green-dark text-spotify-black'
+                          } disabled:opacity-50`}
+                        >
+                          {castingToDevice === device.id ? 'Casting...' : 
+                           isLocked ? 'Pro Only' : 'Cast'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Empty State */}
@@ -410,13 +499,23 @@ const CastingModal: React.FC<CastingModalProps> = ({ isOpen, onClose, dashboardC
         {/* Footer */}
         <div className="p-6 border-t border-spotify-light-gray/20 bg-spotify-medium-gray/30">
           <div className="text-center">
-            <p className="text-sm text-spotify-text-gray font-spotify mb-2">
-              💡 <strong>Quick Start:</strong> Use "New Window" for immediate casting - just drag to your TV!
-            </p>
+            <div className="flex items-center justify-center space-x-2 mb-2">
+              <p className="text-sm text-spotify-text-gray font-spotify">
+                💡 <strong>Quick Start:</strong> Use "New Window" for immediate casting - just drag to your TV!
+              </p>
+              {subscription.tier === 'free' && (
+                <button
+                  onClick={onClose}
+                  className="px-3 py-1 bg-spotify-green hover:bg-spotify-green-dark text-spotify-black font-medium rounded-lg transition-all text-xs font-spotify"
+                >
+                  Upgrade for Full Casting
+                </button>
+              )}
+            </div>
             <div className="flex items-center justify-center space-x-4 text-xs text-spotify-text-gray/70">
-              <span>📺 Custom Receiver</span>
-              <span>🖥️ Wireless Display</span>
-              <span>🪟 New Window</span>
+              <span>📺 {subscription.tier === 'free' ? '🔒' : '✅'} Custom Receiver</span>
+              <span>🖥️ {subscription.tier === 'free' ? '🔒' : '✅'} Wireless Display</span>
+              <span>🪟 ✅ New Window</span>
             </div>
           </div>
         </div>

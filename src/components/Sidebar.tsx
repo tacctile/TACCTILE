@@ -10,9 +10,12 @@ import {
   ChevronRight,
   X,
   User,
-  Menu
+  Menu,
+  Crown,
+  Lock
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -24,11 +27,11 @@ interface SidebarProps {
 }
 
 const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'alerts', label: 'Alerts', icon: Bell },
-  { id: 'api-feeds', label: 'API Feeds', icon: Rss },
-  { id: 'ai-tools', label: 'Stacc Cast', icon: Cast },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, requiresSubscription: false },
+  { id: 'alerts', label: 'Alerts', icon: Bell, requiresSubscription: false },
+  { id: 'api-feeds', label: 'API Feeds', icon: Rss, requiresSubscription: false },
+  { id: 'ai-tools', label: 'Stacc Cast', icon: Cast, requiresSubscription: false },
+  { id: 'settings', label: 'Settings', icon: Settings, requiresSubscription: false },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -40,12 +43,46 @@ const Sidebar: React.FC<SidebarProps> = ({
   setIsMobileMenuOpen
 }) => {
   const { logout, user } = useAuth();
+  const { subscription } = useSubscription();
 
   const handleItemClick = (itemId: string) => {
     setActiveView(itemId);
     // Close mobile menu on item click
     if (window.innerWidth < 1024) {
       setIsMobileMenuOpen(false);
+    }
+  };
+
+  const getSubscriptionIcon = () => {
+    switch (subscription.tier) {
+      case 'pro':
+        return <Crown className="w-4 h-4 text-spotify-green" />;
+      case 'enterprise':
+        return <Crown className="w-4 h-4 text-purple-400" />;
+      default:
+        return <Lock className="w-4 h-4 text-orange-400" />;
+    }
+  };
+
+  const getSubscriptionText = () => {
+    switch (subscription.tier) {
+      case 'pro':
+        return 'Pro';
+      case 'enterprise':
+        return 'Enterprise';
+      default:
+        return 'Free';
+    }
+  };
+
+  const getSubscriptionColor = () => {
+    switch (subscription.tier) {
+      case 'pro':
+        return 'text-spotify-green';
+      case 'enterprise':
+        return 'text-purple-400';
+      default:
+        return 'text-orange-400';
     }
   };
 
@@ -98,21 +135,48 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* RESPONSIVE USER PROFILE */}
         <div className="p-3 sm:p-4 border-b border-spotify-light-gray/20 flex-shrink-0">
           {!isCollapsed ? (
-            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-spotify-green rounded-full flex items-center justify-center flex-shrink-0">
-                <User className="w-4 h-4 sm:w-5 sm:h-5 text-spotify-black" />
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-spotify-green rounded-full flex items-center justify-center flex-shrink-0">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-spotify-black" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-spotify-white font-medium text-xs sm:text-sm font-spotify truncate">
+                    {user?.name || 'User'}
+                  </p>
+                  <p className="text-spotify-text-gray text-xs font-spotify truncate">
+                    {user?.email || 'user@tacctile.com'}
+                  </p>
+                </div>
+                <div className="relative flex-shrink-0">
+                  <Bell className="w-3 h-3 sm:w-4 sm:h-4 text-spotify-text-gray hover:text-spotify-white transition-colors cursor-pointer" />
+                  <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-spotify-green rounded-full animate-pulse"></div>
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-spotify-white font-medium text-xs sm:text-sm font-spotify truncate">
-                  {user?.name || 'User'}
-                </p>
-                <p className="text-spotify-text-gray text-xs font-spotify truncate">
-                  {user?.email || 'user@tacctile.com'}
-                </p>
-              </div>
-              <div className="relative flex-shrink-0">
-                <Bell className="w-3 h-3 sm:w-4 sm:h-4 text-spotify-text-gray hover:text-spotify-white transition-colors cursor-pointer" />
-                <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-spotify-green rounded-full animate-pulse"></div>
+              
+              {/* Subscription Badge */}
+              <div className="flex items-center justify-between">
+                <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg ${
+                  subscription.tier === 'free' 
+                    ? 'bg-orange-500/20 border border-orange-500/30' 
+                    : subscription.tier === 'pro'
+                    ? 'bg-spotify-green/20 border border-spotify-green/30'
+                    : 'bg-purple-500/20 border border-purple-500/30'
+                }`}>
+                  {getSubscriptionIcon()}
+                  <span className={`text-xs font-medium font-spotify ${getSubscriptionColor()}`}>
+                    {getSubscriptionText()}
+                  </span>
+                </div>
+                
+                {subscription.tier === 'free' && (
+                  <button
+                    onClick={() => setActiveView('upgrade')}
+                    className="px-2 py-1 bg-spotify-green hover:bg-spotify-green-dark text-spotify-black font-medium rounded text-xs transition-all font-spotify"
+                  >
+                    Upgrade
+                  </button>
+                )}
               </div>
             </div>
           ) : (
@@ -123,6 +187,9 @@ const Sidebar: React.FC<SidebarProps> = ({
               <div className="relative">
                 <Bell className="w-3 h-3 sm:w-4 sm:h-4 text-spotify-text-gray hover:text-spotify-white transition-colors cursor-pointer" />
                 <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-spotify-green rounded-full animate-pulse"></div>
+              </div>
+              <div className="flex items-center justify-center">
+                {getSubscriptionIcon()}
               </div>
             </div>
           )}
@@ -160,7 +227,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                     : // Expanded: keep current styling
                       isActive ? 'text-spotify-green' : 'group-hover:text-spotify-white'
                 }`} />
-                {!isCollapsed && <span className="font-medium truncate">{item.label}</span>}
+                {!isCollapsed && (
+                  <div className="flex items-center justify-between w-full">
+                    <span className="font-medium truncate">{item.label}</span>
+                    {item.id === 'ai-tools' && subscription.tier === 'free' && (
+                      <Lock className="w-3 h-3 text-orange-400 opacity-60" />
+                    )}
+                  </div>
+                )}
               </button>
             );
           })}
