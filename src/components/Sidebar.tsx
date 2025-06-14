@@ -141,13 +141,25 @@ const Sidebar: React.FC<SidebarProps> = ({
                 className={`
                   w-full flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 rounded-lg 
                   transition-all group font-spotify text-sm sm:text-base
-                  ${isActive 
-                    ? 'bg-spotify-green/20 text-spotify-green border border-spotify-green/30' 
-                    : 'text-spotify-text-gray hover:text-spotify-white hover:bg-spotify-medium-gray'
+                  ${isCollapsed
+                    ? // Collapsed state styling
+                      isActive 
+                        ? 'text-spotify-green' 
+                        : 'text-spotify-text-gray hover:text-spotify-white hover:bg-spotify-medium-gray'
+                    : // Expanded state styling  
+                      isActive 
+                        ? 'bg-spotify-green/20 text-spotify-green border border-spotify-green/30' 
+                        : 'text-spotify-text-gray hover:text-spotify-white hover:bg-spotify-medium-gray'
                   }
                 `}
               >
-                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ${isActive ? 'text-spotify-green' : 'group-hover:text-spotify-white'}`} />
+                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-colors ${
+                  isCollapsed
+                    ? // Collapsed: just highlight icon when active
+                      isActive ? 'text-spotify-green' : 'group-hover:text-spotify-white'
+                    : // Expanded: keep current styling
+                      isActive ? 'text-spotify-green' : 'group-hover:text-spotify-white'
+                }`} />
                 {!isCollapsed && <span className="font-medium truncate">{item.label}</span>}
               </button>
             );
