@@ -1,13 +1,10 @@
-// Universal Casting Service - Supports all major casting protocols
-// Google Cast, AirPlay, Presentation API, Remote Playback API, and more
-
+// Simplified, reliable casting service focused on dashboard content only
 export interface CastDevice {
   id: string;
   name: string;
-  type: 'chromecast' | 'airplay' | 'presentation' | 'remote-playback' | 'dlna' | 'miracast' | 'unknown';
+  type: 'chromecast' | 'airplay' | 'presentation' | 'window' | 'unknown';
   status: 'available' | 'connecting' | 'connected' | 'unavailable';
   icon: string;
-  capabilities: string[];
 }
 
 export interface CastSession {
@@ -22,56 +19,58 @@ class CastingService {
   private currentSession: CastSession | null = null;
   private listeners: Set<(devices: CastDevice[]) => void> = new Set();
   private sessionListeners: Set<(session: CastSession | null) => void> = new Set();
-  private isScanning = false;
-
-  // Google Cast integration
   private castContext: any = null;
   private presentationRequest: any = null;
-  private castReceiverUrl: string;
-  
-  // Custom receiver app ID - replace with your registered app ID
-  private customReceiverAppId: string | null = null;
+  private castWindow: Window | null = null;
 
   constructor() {
-    // Use the cast-display.html as the receiver URL
-    this.castReceiverUrl = `${window.location.origin}/cast-display.html`;
-    this.initializeCastingAPIs();
+    this.initializeAPIs();
   }
 
-  private async initializeCastingAPIs() {
-    // Initialize Google Cast API
-    await this.initializeGoogleCast();
+  private async initializeAPIs() {
+    // Initialize Google Cast
+    this.initializeGoogleCast();
     
     // Initialize Presentation API
     this.initializePresentationAPI();
     
-    // Initialize Remote Playback API
-    this.initializeRemotePlaybackAPI();
-    
-    // Initialize custom protocols
-    this.initializeCustomProtocols();
+    // Always add fallback window casting
+    this.addFallbackDevice();
   }
 
   private async initializeGoogleCast() {
     try {
       // Load Google Cast SDK
-      if (!window.__onGCastApiAvailable) {
+      if (!window.__onGCastApiAvailable && !window.cast) {
         window.__onGCastApiAvailable = (isAvailable: boolean) => {
+          console.log('Google Cast API available:', isAvailable);
           if (isAvailable) {
             this.setupGoogleCast();
           }
         };
 
-        // Dynamically load Google Cast SDK
         const script = document.createElement('script');
         script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
         script.async = true;
+        script.onerror = () => {
+          console.log('Google Cast SDK failed to load');
+          this.addPresentationDevice();
+        };
         document.head.appendChild(script);
+        
+        // Timeout fallback
+        setTimeout(() => {
+          if (!window.cast) {
+            console.log('Google Cast SDK timeout');
+            this.addPresentationDevice();
+          }
+        }, 3000);
       } else if (window.cast && window.cast.framework) {
         this.setupGoogleCast();
       }
     } catch (error) {
-      console.log('Google Cast not available:', error);
+      console.log('Google Cast initialization failed:', error);
+      this.addPresentationDevice();
     }
   }
 
@@ -79,11 +78,8 @@ class CastingService {
     try {
       const castContext = window.cast.framework.CastContext.getInstance();
       
-      // Use custom receiver app ID if available, otherwise use default
-      const receiverAppId = this.customReceiverAppId || window.chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID;
-      
       castContext.setOptions({
-        receiverApplicationId: receiverAppId,
+        receiverApplicationId: window.chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
         autoJoinPolicy: window.chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
       });
 
@@ -95,149 +91,58 @@ class CastingService {
         (event: any) => this.handleCastStateChange(event)
       );
 
-      // Listen for session state changes
-      castContext.addEventListener(
-        window.cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
-        (event: any) => this.handleSessionStateChange(event)
-      );
-
-      // Add Google Cast devices
-      this.addGoogleCastDevices();
+      this.addChromecastDevice();
+      console.log('Google Cast setup completed');
     } catch (error) {
       console.log('Google Cast setup failed:', error);
+      this.addPresentationDevice();
     }
   }
 
   private initializePresentationAPI() {
     try {
       if ('presentation' in navigator && 'PresentationRequest' in window) {
-        // Create presentation request for the cast display URL
-        const presentationUrls = [
-          this.castReceiverUrl,
-          `${window.location.origin}/cast-display.html`
-        ];
-
-        this.presentationRequest = new (window as any).PresentationRequest(presentationUrls);
-
-        // Listen for available displays
-        this.presentationRequest.addEventListener('connectionavailable', (event: any) => {
-          this.handlePresentationConnection(event.connection);
-        });
-
-        // Check for available displays
-        navigator.presentation.defaultRequest = this.presentationRequest;
-        this.addPresentationDevices();
+        const castUrl = `${window.location.origin}/cast-display.html`;
+        this.presentationRequest = new (window as any).PresentationRequest([castUrl]);
+        this.addPresentationDevice();
+        console.log('Presentation API initialized');
       }
     } catch (error) {
       console.log('Presentation API not available:', error);
     }
   }
 
-  private initializeRemotePlaybackAPI() {
-    try {
-      // Check for Remote Playback API support
-      if ('remote' in HTMLVideoElement.prototype) {
-        // Add remote playback devices
-        this.addRemotePlaybackDevices();
-      }
-    } catch (error) {
-      console.log('Remote Playback API not available:', error);
-    }
-  }
-
-  private initializeCustomProtocols() {
-    // Add AirPlay devices (detected via network discovery)
-    this.detectAirPlayDevices();
-    
-    // Add DLNA/UPnP devices
-    this.detectDLNADevices();
-    
-    // Add Miracast devices
-    this.detectMiracastDevices();
-  }
-
-  private addGoogleCastDevices() {
-    if (this.castContext) {
-      const device: CastDevice = {
-        id: 'google-cast-available',
-        name: 'Chromecast',
-        type: 'chromecast',
-        status: 'available',
-        icon: '📺',
-        capabilities: ['video', 'audio', 'screen-mirroring']
-      };
-      this.addDevice(device);
-    }
-  }
-
-  private addPresentationDevices() {
-    if (this.presentationRequest) {
-      const device: CastDevice = {
-        id: 'presentation-display',
-        name: 'Wireless Display',
-        type: 'presentation',
-        status: 'available',
-        icon: '🖥️',
-        capabilities: ['screen-mirroring', 'presentation']
-      };
-      this.addDevice(device);
-    }
-  }
-
-  private addRemotePlaybackDevices() {
+  private addChromecastDevice() {
     const device: CastDevice = {
-      id: 'remote-playback',
-      name: 'Media Device',
-      type: 'remote-playback',
+      id: 'chromecast',
+      name: 'Chromecast Device',
+      type: 'chromecast',
       status: 'available',
-      icon: '📱',
-      capabilities: ['video', 'audio']
+      icon: '📺'
     };
     this.addDevice(device);
   }
 
-  private detectAirPlayDevices() {
-    // AirPlay devices - simulated discovery
-    // In a real implementation, this would use network discovery
-    if (navigator.userAgent.includes('Mac') || navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad')) {
-      const device: CastDevice = {
-        id: 'airplay-device',
-        name: 'Apple TV',
-        type: 'airplay',
-        status: 'available',
-        icon: '📺',
-        capabilities: ['video', 'audio', 'screen-mirroring']
-      };
-      this.addDevice(device);
-    }
-  }
-
-  private detectDLNADevices() {
-    // DLNA/UPnP device discovery - simulated
+  private addPresentationDevice() {
     const device: CastDevice = {
-      id: 'dlna-device',
-      name: 'Smart TV',
-      type: 'dlna',
+      id: 'presentation',
+      name: 'Wireless Display',
+      type: 'presentation',
       status: 'available',
-      icon: '📺',
-      capabilities: ['video', 'audio']
+      icon: '🖥️'
     };
     this.addDevice(device);
   }
 
-  private detectMiracastDevices() {
-    // Miracast device discovery - simulated
-    if (navigator.userAgent.includes('Windows')) {
-      const device: CastDevice = {
-        id: 'miracast-device',
-        name: 'Wireless Display',
-        type: 'miracast',
-        status: 'available',
-        icon: '🖥️',
-        capabilities: ['screen-mirroring']
-      };
-      this.addDevice(device);
-    }
+  private addFallbackDevice() {
+    const device: CastDevice = {
+      id: 'new-window',
+      name: 'New Window/Tab',
+      type: 'window',
+      status: 'available',
+      icon: '🪟'
+    };
+    this.addDevice(device);
   }
 
   private addDevice(device: CastDevice) {
@@ -252,8 +157,6 @@ class CastingService {
 
   private handleCastStateChange(event: any) {
     console.log('Cast state changed:', event.castState);
-    
-    // Update device status based on cast state
     const chromecastDevice = this.devices.find(d => d.type === 'chromecast');
     if (chromecastDevice) {
       switch (event.castState) {
@@ -270,44 +173,20 @@ class CastingService {
     }
   }
 
-  private handleSessionStateChange(event: any) {
-    console.log('Session state changed:', event.sessionState);
-    
-    const session = this.castContext?.getCurrentSession();
-    if (session && event.sessionState === window.cast.framework.SessionState.SESSION_STARTED) {
-      // Session started successfully
-      console.log('Cast session started successfully');
-    }
-  }
-
-  private handlePresentationConnection(connection: any) {
-    // Handle presentation API connections
-    console.log('Presentation connection:', connection);
-  }
-
-  // Public API methods
   public async startDeviceDiscovery(): Promise<CastDevice[]> {
-    if (this.isScanning) return this.devices;
+    console.log('Starting device discovery...');
     
-    this.isScanning = true;
-    
-    try {
-      // Refresh all device discovery methods
-      await this.initializeCastingAPIs();
-      
-      // Simulate network scan delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-    } finally {
-      this.isScanning = false;
-    }
+    // Simulate discovery delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     return this.devices;
   }
 
-  public async castToDevice(deviceId: string, content: any): Promise<true | string> {
+  public async castToDevice(deviceId: string, dashboardContent: any): Promise<true | string> {
     const device = this.devices.find(d => d.id === deviceId);
     if (!device) return 'Device not found';
+
+    console.log('Casting to device:', device.name, 'with content:', dashboardContent);
 
     try {
       device.status = 'connecting';
@@ -317,25 +196,16 @@ class CastingService {
 
       switch (device.type) {
         case 'chromecast':
-          result = await this.castToGoogleCast(content);
-          break;
-        case 'airplay':
-          result = await this.castToAirPlay(content);
+          result = await this.castToChromecast(dashboardContent);
           break;
         case 'presentation':
-          result = await this.castToPresentation(content);
+          result = await this.castToPresentation(dashboardContent);
           break;
-        case 'remote-playback':
-          result = await this.castToRemotePlayback(content);
-          break;
-        case 'dlna':
-          result = await this.castToDLNA(content);
-          break;
-        case 'miracast':
-          result = await this.castToMiracast(content);
+        case 'window':
+          result = await this.castToNewWindow(dashboardContent);
           break;
         default:
-          result = await this.castToGenericDevice(device, content);
+          result = await this.castToNewWindow(dashboardContent);
       }
 
       if (result === true) {
@@ -362,178 +232,143 @@ class CastingService {
     }
   }
 
-  private async castToGoogleCast(content: any): Promise<true | string> {
+  private async castToChromecast(dashboardContent: any): Promise<true | string> {
     if (!this.castContext) {
-      return 'Google Cast not available. Please ensure you have a compatible device and try again.';
+      return 'Chromecast not available. Please ensure you have a compatible device nearby.';
     }
 
     try {
-      // Request a session first
+      console.log('Requesting Chromecast session...');
       await this.castContext.requestSession();
       
       const session = this.castContext.getCurrentSession();
       if (!session) {
-        return 'Unable to establish cast session. Please try again.';
+        return 'Unable to establish Chromecast session. Please try again.';
       }
 
-      // Check if we have a custom receiver app ID
-      if (this.customReceiverAppId) {
-        // Use custom receiver for HTML content
-        const mediaInfo = new window.chrome.cast.media.MediaInfo(this.castReceiverUrl, 'text/html');
-        
-        // Set metadata
-        mediaInfo.metadata = new window.chrome.cast.media.GenericMediaMetadata();
-        mediaInfo.metadata.title = 'TACCTILE Dashboard';
-        mediaInfo.metadata.subtitle = `${content.dashboard?.tiles?.length || 0} tiles`;
-        
-        // Add custom data to pass dashboard content
-        mediaInfo.customData = {
-          dashboardContent: content.dashboard,
-          timestamp: Date.now(),
-          tiles: content.dashboard?.tiles || []
-        };
+      console.log('Chromecast session established, loading media...');
 
-        const request = new window.chrome.cast.media.LoadRequest(mediaInfo);
-        
-        // Load the media
-        await session.loadMedia(request);
-        
-        console.log('Successfully cast to Chromecast with custom receiver');
-        return true;
-      } else {
-        // For default receiver, we need to use standard media content
-        // Since we can't cast HTML to the default receiver, we'll send a message instead
-        console.log('Using default receiver - sending message to display dashboard info');
-        
-        // Send a message to the receiver (if supported)
-        try {
-          const messageNamespace = 'urn:x-cast:com.tacctile.dashboard';
-          session.sendMessage(messageNamespace, {
-            type: 'dashboard-data',
-            content: content,
-            message: 'Dashboard casting initiated'
-          });
-          
-          console.log('Successfully sent dashboard data to Chromecast');
-          return true;
-        } catch (messageError) {
-          console.log('Message sending not supported, falling back to presentation mode');
-          
-          // Fallback: try to use presentation API instead
-          if (this.presentationRequest) {
-            return await this.castToPresentation(content);
-          }
-          
-          return 'Default Chromecast receiver cannot display custom content. A custom receiver app is required for full dashboard functionality.';
-        }
-      }
+      // Create a media info object for the cast display
+      const castUrl = `${window.location.origin}/cast-display.html`;
+      const mediaInfo = new window.chrome.cast.media.MediaInfo(castUrl, 'text/html');
+      
+      // Set metadata
+      mediaInfo.metadata = new window.chrome.cast.media.GenericMediaMetadata();
+      mediaInfo.metadata.title = 'TACCTILE Dashboard';
+      mediaInfo.metadata.subtitle = `Live Dashboard • ${dashboardContent.tiles?.length || 0} tiles`;
+      
+      // Add dashboard content as custom data
+      mediaInfo.customData = {
+        dashboardContent: dashboardContent,
+        timestamp: Date.now(),
+        type: 'tacctile-dashboard'
+      };
+
+      const request = new window.chrome.cast.media.LoadRequest(mediaInfo);
+      
+      // Load the media
+      await session.loadMedia(request);
+      
+      console.log('Successfully cast dashboard to Chromecast');
+      return true;
 
     } catch (error) {
-      // Check if the error is due to user cancellation
-      const errorMessage = error?.message?.toLowerCase() || '';
+      console.error('Chromecast casting error:', error);
+      
+      // Enhanced error detection
+      const errorStr = String(error).toLowerCase();
+      const errorMsg = error?.message?.toLowerCase() || '';
       const errorName = error?.name?.toLowerCase() || '';
       
-      if (errorMessage.includes('cancel') || 
-          errorName.includes('notallowederror') || 
-          errorName.includes('aborterror') ||
-          errorMessage.includes('user') ||
-          errorName.includes('usercancel')) {
-        console.log('Google Cast operation cancelled by user');
-        return 'Casting cancelled by user';
-      } else {
-        console.error('Google Cast failed:', error);
-        return 'Google Cast failed. Please ensure your device is available and try again.';
+      if (errorStr.includes('cancel') || 
+          errorStr.includes('user') || 
+          errorMsg.includes('cancel') || 
+          errorName.includes('cancel') ||
+          errorName.includes('abort')) {
+        return 'Chromecast session cancelled by user';
       }
-    }
-  }
-
-  private async castToAirPlay(content: any): Promise<true | string> {
-    // AirPlay casting - would need native integration or WebRTC
-    try {
-      // For AirPlay, we'd typically use the Presentation API or native iOS integration
-      console.log('Casting to AirPlay:', content);
       
-      // Simulate successful AirPlay casting
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      return true;
-    } catch (error) {
-      console.error('AirPlay casting failed:', error);
-      return 'AirPlay casting failed. Please ensure your Apple TV is available and try again.';
+      return 'Chromecast connection failed. Please ensure your device is available and try again.';
     }
   }
 
-  private async castToPresentation(content: any): Promise<true | string> {
-    if (!this.presentationRequest) return 'Presentation API not supported by your browser';
+  private async castToPresentation(dashboardContent: any): Promise<true | string> {
+    if (!this.presentationRequest) {
+      return 'Wireless display not supported by your browser';
+    }
 
     try {
+      console.log('Starting wireless display presentation...');
       const connection = await this.presentationRequest.start();
       
-      // Send dashboard content to the display
-      connection.send(JSON.stringify({
+      // Wait a moment for connection to establish
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Send dashboard content
+      const message = JSON.stringify({
         type: 'dashboard-cast',
-        content: content,
+        content: dashboardContent,
         timestamp: Date.now()
-      }));
+      });
       
-      console.log('Successfully cast via Presentation API');
+      connection.send(message);
+      
+      console.log('Successfully cast to wireless display');
       return true;
-    } catch (error) {
-      const errorMessage = error?.message?.toLowerCase() || '';
-      const errorName = error?.name?.toLowerCase() || '';
       
-      if (errorMessage.includes('cancel') || 
-          errorName.includes('notallowederror') || 
-          errorName.includes('aborterror') ||
-          errorMessage.includes('user')) {
-        return 'Presentation cancelled by user';
+    } catch (error) {
+      console.error('Presentation API casting error:', error);
+      
+      const errorStr = String(error).toLowerCase();
+      if (errorStr.includes('cancel') || errorStr.includes('user') || errorStr.includes('abort')) {
+        return 'Wireless display session cancelled by user';
       }
       
-      console.error('Presentation API casting failed:', error);
-      return 'Wireless display casting failed. Please ensure your display device is available.';
+      return 'Wireless display connection failed. Please ensure your display device supports wireless connections.';
     }
   }
 
-  private async castToRemotePlayback(content: any): Promise<true | string> {
+  private async castToNewWindow(dashboardContent: any): Promise<true | string> {
     try {
-      // Use Remote Playback API for media content
-      console.log('Casting via Remote Playback:', content);
-      return true;
-    } catch (error) {
-      console.error('Remote Playback failed:', error);
-      return 'Remote playback failed. Please ensure your media device is available.';
-    }
-  }
+      console.log('Opening dashboard in new window...');
+      
+      // Close existing cast window if open
+      if (this.castWindow && !this.castWindow.closed) {
+        this.castWindow.close();
+      }
+      
+      // Open cast display in new window
+      const castUrl = `${window.location.origin}/cast-display.html`;
+      this.castWindow = window.open(
+        castUrl,
+        'TacctileCastDisplay',
+        'width=1920,height=1080,toolbar=no,menubar=no,location=no,status=no,scrollbars=no,resizable=yes'
+      );
 
-  private async castToDLNA(content: any): Promise<true | string> {
-    try {
-      // DLNA casting - would need UPnP implementation
-      console.log('Casting to DLNA device:', content);
-      return true;
-    } catch (error) {
-      console.error('DLNA casting failed:', error);
-      return 'DLNA casting failed. Please ensure your smart TV is available and supports DLNA.';
-    }
-  }
+      if (!this.castWindow) {
+        return 'Unable to open new window. Please allow popups for this site and try again.';
+      }
 
-  private async castToMiracast(content: any): Promise<true | string> {
-    try {
-      // Miracast casting - would need Windows API integration
-      console.log('Casting to Miracast device:', content);
-      return true;
+      // Wait for the window to load, then send data
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      try {
+        this.castWindow.postMessage({
+          type: 'dashboard-cast',
+          content: dashboardContent,
+          timestamp: Date.now()
+        }, window.location.origin);
+        
+        console.log('Successfully sent dashboard data to new window');
+        return true;
+      } catch (messageError) {
+        console.log('Failed to send message to window, but window opened successfully');
+        return true; // Window opened, data will be handled by the cast display page
+      }
+      
     } catch (error) {
-      console.error('Miracast casting failed:', error);
-      return 'Miracast casting failed. Please ensure your wireless display is available.';
-    }
-  }
-
-  private async castToGenericDevice(device: CastDevice, content: any): Promise<true | string> {
-    try {
-      // Generic casting fallback
-      console.log('Casting to generic device:', device, content);
-      return true;
-    } catch (error) {
-      console.error('Generic casting failed:', error);
-      return `Casting to ${device.name} failed. Please ensure the device is available and try again.`;
+      console.error('New window casting error:', error);
+      return 'Failed to open new window. Please check your browser settings and try again.';
     }
   }
 
@@ -541,8 +376,15 @@ class CastingService {
     if (!this.currentSession) return false;
 
     try {
+      // Stop Chromecast session
       if (this.castContext && this.castContext.getCurrentSession()) {
         this.castContext.getCurrentSession().endSession(true);
+      }
+
+      // Close cast window
+      if (this.castWindow && !this.castWindow.closed) {
+        this.castWindow.close();
+        this.castWindow = null;
       }
 
       this.currentSession.device.status = 'available';
@@ -551,6 +393,8 @@ class CastingService {
       
       this.notifyDeviceListeners();
       this.notifySessionListeners();
+      
+      console.log('Casting stopped successfully');
       return true;
     } catch (error) {
       console.error('Stop casting failed:', error);
@@ -574,15 +418,6 @@ class CastingService {
   public onSessionChanged(callback: (session: CastSession | null) => void) {
     this.sessionListeners.add(callback);
     return () => this.sessionListeners.delete(callback);
-  }
-
-  // Method to set custom receiver app ID
-  public setCustomReceiverAppId(appId: string) {
-    this.customReceiverAppId = appId;
-    // Reinitialize Google Cast with the new app ID
-    if (this.castContext) {
-      this.setupGoogleCast();
-    }
   }
 
   private notifyDeviceListeners() {
