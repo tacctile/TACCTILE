@@ -45,29 +45,8 @@ export const getDefaultTilesForView = (view: string): TileData[] => {
   
   switch (view) {
     case 'ai-tools':
-      return [
-        {
-          id: 'ai-insights',
-          title: 'AI Sports Insights',
-          description: 'Ask questions about sports, fantasy, and betting',
-          value: 'Ask AI',
-          type: 'interactive',
-          color: 'from-purple-500 to-pink-500',
-          category: 'AI Assistant',
-          lastUpdated: now
-        },
-        {
-          id: 'smart-suggestions',
-          title: 'Smart Suggestions',
-          description: 'AI-generated recommendations for your interests',
-          value: 'Live Feed',
-          type: 'embedded',
-          color: 'from-indigo-500 to-purple-500',
-          category: 'AI Insights',
-          lastUpdated: now
-        },
-        ...generateTestTiles('ai', 'AI Performance').slice(0, 18)
-      ];
+      // Stacc Cast starts empty - will be populated when users cast tiles
+      return [];
 
     case 'api-feeds':
       return generateTestTiles('api', 'API Monitoring');

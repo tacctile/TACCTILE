@@ -3,7 +3,7 @@ import {
   LayoutDashboard, 
   Bell, 
   Rss, 
-  Bot, 
+  Cast, 
   Settings, 
   LogOut,
   ChevronLeft,
@@ -27,7 +27,7 @@ const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'alerts', label: 'Alerts', icon: Bell },
   { id: 'api-feeds', label: 'API Feeds', icon: Rss },
-  { id: 'ai-tools', label: 'AI Tools', icon: Bot },
+  { id: 'ai-tools', label: 'Stacc Cast', icon: Cast },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 

@@ -1,26 +1,56 @@
 import React, { useState, forwardRef } from 'react';
-import { TrendingUp, TrendingDown, Clock, Brain, Sparkles, X, GripVertical, Cast } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, Brain, Sparkles, X, Cast, GripVertical } from 'lucide-react';
 import { TileData } from '../types/dashboard';
 import AIInsightsModal from './AIInsightsModal';
 import SmartSuggestionsCard from './SmartSuggestionsCard';
+import WarningModal from './WarningModal';
 
 interface DashboardTileProps {
   tile: TileData;
   onTileUpdate: (updatedTile: TileData) => void;
   onDelete: (tileId: string) => void;
+  onCast?: (tileId: string) => void;
   isDeleting?: boolean;
   isDraggable?: boolean;
+  isCast?: boolean;
+  currentView?: string;
 }
 
 const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({ 
   tile, 
   onTileUpdate, 
   onDelete,
+  onCast,
   isDeleting = false,
-  isDraggable = false
+  isDraggable = false,
+  isCast = false,
+  currentView = 'dashboard'
 }, ref) => {
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [showUncastWarning, setShowUncastWarning] = useState(false);
+
+  const handleCastClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // If tile is already cast and we're on Stacc Cast page, show warning
+    if (isCast && currentView === 'ai-tools') {
+      setShowUncastWarning(true);
+    } else {
+      // Direct cast/uncast for other scenarios
+      onCast?.(tile.id);
+    }
+  };
+
+  const confirmUncast = () => {
+    onCast?.(tile.id);
+    setShowUncastWarning(false);
+  };
+
+  const cancelUncast = () => {
+    setShowUncastWarning(false);
+  };
 
   const renderSparkline = (data: number[]) => {
     const max = Math.max(...data);
@@ -133,9 +163,9 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
   
   const tileClasses = `
     group relative w-full h-full bg-spotify-dark-gray rounded-xl border overflow-hidden
-    transition-all duration-300 transform
+    transition-all duration-300
     ${isAITile ? 'cursor-pointer' : ''}
-    ${isHovered ? 'scale-105 shadow-2xl shadow-spotify-green/20' : 'hover:scale-102'}
+    ${isHovered ? 'scale-[1.02] shadow-2xl shadow-spotify-green/20' : ''}
     ${isDeleting ? 'opacity-0 scale-95' : ''}
     border-spotify-light-gray/20 hover:border-spotify-green/30
   `;
@@ -149,49 +179,64 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
         onMouseLeave={() => setIsHovered(false)}
         onClick={tile.id === 'ai-insights' ? () => setShowAIInsights(true) : undefined}
       >
-        {/* DRAG HANDLE */}
-        {isDraggable && (
-          <div className="drag-handle absolute top-1.5 sm:top-2 lg:top-3 left-1.5 sm:left-2 lg:left-3 p-1 rounded cursor-move opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 bg-spotify-medium-gray/50 hover:bg-spotify-medium-gray">
-            <GripVertical className="w-3 h-3 sm:w-4 sm:h-4 text-spotify-text-gray" />
-          </div>
-        )}
+        {/* UPPER RIGHT CORNER - DRAG HANDLE + DELETE BUTTON */}
+        <div className="absolute top-3 right-3 flex items-center space-x-2 z-20">
+          {/* 6-DOT DRAG HANDLE */}
+          {isDraggable && (
+            <div className="p-1.5 rounded cursor-move opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-spotify-medium-gray/50 hover:bg-spotify-medium-gray flex items-center justify-center">
+              <GripVertical className="w-4 h-4 text-spotify-text-gray" title="Drag to move tile" />
+            </div>
+          )}
 
-        {/* CAST ICON - BOTTOM LEFT */}
-        <div className="absolute bottom-1.5 sm:bottom-2 lg:bottom-3 left-1.5 sm:left-2 lg:left-3 p-1 sm:p-1.5 lg:p-2 rounded-full bg-spotify-medium-gray/50 text-spotify-text-gray z-10">
-          <Cast className="w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3" />
+          {/* DELETE BUTTON */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onDelete(tile.id);
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="p-1.5 rounded bg-spotify-medium-gray/50 text-spotify-text-gray hover:text-white hover:bg-red-600 hover:shadow-lg hover:shadow-red-600/30 transition-all duration-300 opacity-0 group-hover:opacity-100"
+            title="Delete tile"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* DELETE BUTTON */}
+        {/* CAST BUTTON - BOTTOM LEFT */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(tile.id);
-          }}
-          className="absolute top-1.5 sm:top-2 lg:top-3 right-1.5 sm:right-2 lg:right-3 opacity-0 group-hover:opacity-100 p-1 sm:p-1.5 lg:p-2 rounded-full bg-spotify-medium-gray hover:bg-red-600 text-spotify-text-gray hover:text-white transition-all duration-200 z-20"
+          onClick={handleCastClick}
+          onMouseDown={(e) => e.stopPropagation()}
+          className={`absolute bottom-3 left-3 p-2 rounded-full transition-all duration-300 z-20 opacity-0 group-hover:opacity-100 ${
+            isCast 
+              ? 'bg-spotify-green text-spotify-black shadow-lg shadow-spotify-green/30 opacity-100' 
+              : 'bg-spotify-medium-gray/80 text-spotify-text-gray hover:text-spotify-white hover:bg-spotify-green hover:text-spotify-black hover:shadow-lg hover:shadow-spotify-green/30'
+          }`}
+          title={isCast ? 'Remove from Stacc Cast' : 'Add to Stacc Cast'}
         >
-          <X className="w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3" />
+          <Cast className="w-4 h-4" />
         </button>
 
         {/* HEADER */}
-        <div className={`absolute top-1.5 sm:top-2 lg:top-3 ${isDraggable ? 'left-8 sm:left-10 lg:left-12' : 'left-1.5 sm:left-2 lg:left-3'} right-8 sm:right-10 lg:right-14 z-10 pointer-events-none`}>
-          <h3 className="text-spotify-white font-bold text-xs sm:text-sm lg:text-base leading-tight mb-0.5 sm:mb-1 font-spotify truncate">
+        <div className="absolute top-3 left-3 right-20 z-10 pointer-events-none">
+          <h3 className="text-spotify-white font-bold text-sm leading-tight mb-1 font-spotify truncate">
             {tile.title}
           </h3>
-          <p className="text-spotify-text-gray text-xs sm:text-sm line-clamp-2 font-spotify">
+          <p className="text-spotify-text-gray text-xs line-clamp-2 font-spotify">
             {tile.description}
           </p>
         </div>
 
         {/* CONTENT */}
-        <div className="pt-10 sm:pt-12 lg:pt-16 pb-6 sm:pb-8 lg:pb-12 px-2 sm:px-3 lg:px-4 h-full">
+        <div className="pt-16 pb-14 px-4 h-full">
           {renderTileContent()}
         </div>
 
         {/* FOOTER - TIME ONLY */}
         {tile.id !== 'smart-suggestions' && (
-          <div className="absolute bottom-1.5 sm:bottom-2 lg:bottom-3 right-1.5 sm:right-2 lg:right-3 flex items-center space-x-1 text-xs text-spotify-text-gray font-spotify">
-            <Clock className="w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3 flex-shrink-0" />
-            <span className="truncate text-xs max-w-[100px] sm:max-w-[120px]">{tile.lastUpdated}</span>
+          <div className="absolute bottom-3 left-16 right-16 flex items-center justify-center space-x-1 text-xs text-spotify-text-gray font-spotify">
+            <Clock className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate">{tile.lastUpdated}</span>
           </div>
         )}
 
@@ -207,11 +252,9 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
           </div>
         )}
 
-        {/* Resize Handle Indicator */}
-        {isDraggable && (
-          <div className="absolute bottom-1 right-1 w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity duration-200 pointer-events-none">
-            <div className="w-full h-full border-r-2 border-b-2 border-spotify-text-gray rounded-br" />
-          </div>
+        {/* Cast State Indicator */}
+        {isCast && (
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-spotify-green rounded-l-xl pointer-events-none" />
         )}
       </div>
 
@@ -219,6 +262,18 @@ const DashboardTile = forwardRef<HTMLDivElement, DashboardTileProps>(({
       <AIInsightsModal
         isOpen={showAIInsights}
         onClose={() => setShowAIInsights(false)}
+      />
+
+      {/* Uncast Warning Modal */}
+      <WarningModal
+        isOpen={showUncastWarning}
+        title="Remove from Stacc Cast"
+        message={`Are you sure you want to remove "${tile.title}" from your Stacc Cast? You can always cast it again from other pages.`}
+        actionText="Remove from Cast"
+        onConfirm={confirmUncast}
+        onCancel={cancelUncast}
+        icon={<Cast className="w-5 h-5 text-orange-400" />}
+        isDangerous={true}
       />
     </>
   );
