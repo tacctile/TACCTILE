@@ -3,6 +3,8 @@ import { Loader2, Cast, RotateCcw } from 'lucide-react';
 import DashboardTile from './DashboardTile';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import WarningModal from './WarningModal';
+import GhostTile from './GhostTile';
+import TileSelectionModal from './TileSelectionModal';
 import { TileData } from '../types/dashboard';
 import { useLayoutPersistence } from '../hooks/useLayoutPersistence';
 import { getDefaultTilesForView } from '../data/mockData';
@@ -10,6 +12,20 @@ import { getDefaultTilesForView } from '../data/mockData';
 interface DashboardGridProps {
   view: string;
   sidebarCollapsed: boolean;
+}
+
+interface TileTemplate {
+  id: string;
+  title: string;
+  description: string;
+  type: 'metric' | 'chart' | 'api' | 'interactive';
+  color: string;
+  category: string;
+  preview: {
+    value: string;
+    change?: number;
+    changeType?: 'increase' | 'decrease';
+  };
 }
 
 const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed }) => {
@@ -30,6 +46,9 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
   
   // Warning modal states
   const [showClearAllWarning, setShowClearAllWarning] = useState(false);
+  
+  // Tile addition states
+  const [showTileSelection, setShowTileSelection] = useState(false);
 
   // Load saved layout or use defaults
   useEffect(() => {
@@ -262,6 +281,43 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
     setShowClearAllWarning(false);
   }, []);
 
+  // Handle adding new tiles
+  const handleAddTile = useCallback(() => {
+    setShowTileSelection(true);
+  }, []);
+
+  const handleSelectTile = useCallback((template: TileTemplate) => {
+    const newTile: TileData = {
+      id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      title: template.title,
+      description: template.description,
+      value: template.preview.value,
+      change: template.preview.change,
+      changeType: template.preview.changeType,
+      chart: template.type === 'chart' ? [45, 52, 48, 61, 58, 67, 73, 69] : undefined,
+      type: template.type,
+      color: template.color,
+      category: template.category,
+      lastUpdated: new Date().toLocaleString()
+    };
+
+    // Add the new tile to the current view
+    const newTiles = [...tiles, newTile];
+    setTiles(newTiles);
+    
+    // Save the updated layout
+    if (view === 'ai-tools') {
+      // If adding to Stacc Cast, also add to cast tiles
+      const newCastTiles = new Set([...castTiles, newTile.id]);
+      const newCastTileData = { ...castTileData, [newTile.id]: newTile };
+      setCastTiles(newCastTiles);
+      setCastTileData(newCastTileData);
+      saveLayout(view, [], newTiles, undefined, Array.from(newCastTiles), newCastTileData);
+    } else {
+      saveLayout(view, [], newTiles, undefined, Array.from(castTiles), castTileData);
+    }
+  }, [tiles, view, castTiles, castTileData, saveLayout]);
+
   if (isLoading) {
     return (
       <div className="w-full h-screen flex items-center justify-center p-4">
@@ -282,12 +338,17 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
             <Cast className="w-8 h-8 text-spotify-green" />
           </div>
           <h2 className="text-2xl font-bold text-spotify-white mb-2 font-spotify">Your Stacc Cast is Empty</h2>
-          <p className="text-spotify-text-gray font-spotify mb-4">
+          <p className="text-spotify-text-gray font-spotify mb-6">
             Cast tiles from other pages to build your personalized collection here.
           </p>
-          <p className="text-spotify-text-gray text-sm font-spotify">
+          <p className="text-spotify-text-gray text-sm font-spotify mb-8">
             Look for the <Cast className="w-4 h-4 inline mx-1" /> icon on tiles to add them to your Stacc Cast.
           </p>
+          
+          {/* Add Ghost Tile for Empty State */}
+          <div className="max-w-xs mx-auto">
+            <GhostTile onAddTile={handleAddTile} />
+          </div>
         </div>
       </div>
     );
@@ -380,6 +441,9 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
                 </div>
               );
             })}
+            
+            {/* GHOST TILE - Always appears after all tiles */}
+            <GhostTile onAddTile={handleAddTile} />
           </div>
         </div>
 
@@ -418,6 +482,14 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
         onCancel={cancelClearAll}
         icon={<Cast className="w-5 h-5 text-orange-400" />}
         isDangerous={true}
+      />
+
+      {/* Tile Selection Modal */}
+      <TileSelectionModal
+        isOpen={showTileSelection}
+        onClose={() => setShowTileSelection(false)}
+        onSelectTile={handleSelectTile}
+        currentView={view}
       />
     </div>
   );
