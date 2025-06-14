@@ -1,3 +1,17 @@
+export interface TabContent {
+  id: string;
+  title: string;
+  value: string | number;
+  description: string;
+  change?: number;
+  changeType?: 'increase' | 'decrease';
+  chart?: number[];
+  type: 'metric' | 'chart' | 'list' | 'api' | 'interactive' | 'embedded';
+  color: string;
+  category: string;
+  lastUpdated: string;
+}
+
 export interface TileData {
   id: string;
   title: string;
@@ -10,6 +24,12 @@ export interface TileData {
   color: string;
   category: string;
   lastUpdated: string;
+  // New multi-tab support
+  tabs?: {
+    tab1?: TabContent;
+    tab2?: TabContent;
+    tab3?: TabContent;
+  };
 }
 
 export interface TileLayout {
