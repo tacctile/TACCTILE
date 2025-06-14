@@ -356,29 +356,29 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
 
   return (
     <div className="w-full min-h-screen bg-spotify-black font-spotify">
-      <div className="w-full max-w-full px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 mx-auto overflow-x-hidden">
+      <div className="w-full max-w-full px-2 sm:px-3 lg:px-4 xl:px-6 py-4 sm:py-6 lg:py-8 mx-auto overflow-x-hidden">
         
         {/* HEADER */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-4 sm:mb-6 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl lg:text-3xl font-bold text-spotify-white mb-2 font-spotify">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-spotify-white mb-2 font-spotify">
               {view === 'ai-tools' ? 'Stacc Cast' : 'Your Dashboard'}
             </h2>
-            <p className="text-spotify-text-gray font-spotify">
+            <p className="text-spotify-text-gray font-spotify text-sm sm:text-base">
               {view === 'ai-tools' 
-                ? `${castTiles.size} tiles in your cast collection - drag to reorder with live preview`
-                : 'Drag tiles to reorder - tiles shift smoothly like Android interface'
+                ? `${castTiles.size} tiles - 2-column mobile layout`
+                : '2 tiles wide on mobile - fully responsive'
               }
             </p>
           </div>
           
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             <button
               onClick={handleResetLayoutClick}
               disabled={isResetting}
-              className="flex items-center space-x-2 px-4 py-2 bg-spotify-light-gray border border-spotify-light-gray rounded-full text-spotify-text-gray hover:text-spotify-white hover:bg-spotify-medium-gray transition-all disabled:opacity-50 disabled:cursor-not-allowed font-spotify"
+              className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-spotify-light-gray border border-spotify-light-gray rounded-full text-spotify-text-gray hover:text-spotify-white hover:bg-spotify-medium-gray transition-all disabled:opacity-50 disabled:cursor-not-allowed font-spotify text-sm"
             >
-              <RotateCcw className={`w-4 h-4 ${isResetting ? 'animate-spin' : ''}`} />
+              <RotateCcw className={`w-3 h-3 sm:w-4 sm:h-4 ${isResetting ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">
                 {view === 'ai-tools' 
                   ? (isResetting ? 'Clearing...' : 'Clear All')
@@ -389,7 +389,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
           </div>
         </div>
 
-        {/* ANDROID-STYLE DRAG & DROP GRID */}
+        {/* MOBILE-OPTIMIZED GRID - 2 columns on mobile */}
         <div 
           className={`transition-all duration-500 ${
             isResetting ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
@@ -397,7 +397,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
           data-grid-container="true"
           onDragLeave={handleDragLeave}
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-3 lg:gap-4 xl:gap-6">
             {tiles.map((tile, index) => {
               const isDraggedTile = draggedTile === tile.id;
               const isHovering = hoverIndex === index && isDragging && !isDraggedTile;
@@ -405,7 +405,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
               return (
                 <div
                   key={tile.id}
-                  className={`w-full h-80 relative transition-all duration-300 ${
+                  className={`w-full h-64 sm:h-72 lg:h-80 relative transition-all duration-300 ${
                     isDraggedTile 
                       ? 'opacity-30 scale-95 rotate-2 z-50' 
                       : isHovering 
@@ -442,22 +442,24 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ view, sidebarCollapsed })
               );
             })}
             
-            {/* GHOST TILE - Always appears after all tiles */}
-            <GhostTile onAddTile={handleAddTile} />
+            {/* GHOST TILE - Always appears after all tiles, matches height */}
+            <div className="w-full h-64 sm:h-72 lg:h-80 relative">
+              <GhostTile onAddTile={handleAddTile} />
+            </div>
           </div>
         </div>
 
         {/* INFO SECTION */}
         {view !== 'ai-tools' && (
-          <div className="mt-8 sm:mt-12 lg:mt-16 p-3 sm:p-4 lg:p-6 bg-spotify-dark-gray/30 rounded-xl border border-spotify-light-gray/20 w-full max-w-full">
+          <div className="mt-6 sm:mt-8 lg:mt-12 p-3 sm:p-4 lg:p-6 bg-spotify-dark-gray/30 rounded-xl border border-spotify-light-gray/20 w-full max-w-full">
             <div className="text-center">
               <p className="text-spotify-text-gray font-spotify mb-2 text-xs sm:text-sm lg:text-base">
-                📱 <strong className="text-spotify-white">Android-Style Drag & Drop:</strong> Tiles shift in real-time as you drag, creating smooth insertion previews
+                📱 <strong className="text-spotify-white">Mobile-First:</strong> 2 tiles wide on mobile with responsive scaling
               </p>
               <p className="text-spotify-text-gray text-xs sm:text-sm font-spotify">
                 Total tiles: <strong className="text-spotify-green">{tiles.length}</strong> • 
-                Global cast tiles: <strong className="text-spotify-green">{castTiles.size}</strong> • 
-                Layout: <strong className="text-spotify-green">Dynamic Android Flow</strong>
+                Cast tiles: <strong className="text-spotify-green">{castTiles.size}</strong> • 
+                Layout: <strong className="text-spotify-green">2-Col Mobile Responsive</strong>
               </p>
             </div>
           </div>
